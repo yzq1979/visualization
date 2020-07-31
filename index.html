@@ -1,0 +1,774 @@
+	<!DOCTYPE html>
+	<html>
+	  <head>
+		<title>Graph Visualization</title>
+
+
+
+		<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://unpkg.com/vue"></script>
+
+		<!-- import JavaScript -->
+		<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+
+    <script src="https://gw.alipayobjects.com/os/antv/pkg/_antv.g6-3.5.10/dist/g6.min.js"></script>
+
+
+
+	
+	<style>
+	  /* 提示框的样式 */
+	  .g6-tooltip {
+		border: 1px solid #9fc92e;
+		border-radius: 4px;
+		font-size: 12px;
+		color: #8f1b1b;
+		background-color: rgba(255, 255, 255, 0.9);
+		padding: 10px 8px;
+		box-shadow: rgb(33, 165, 66) 0px 0px 10px;
+	  }
+
+
+
+
+
+	
+	</style>
+	
+	
+	
+	</head>
+	
+
+	
+	<body class="vscode-light">
+
+
+	
+	<div id="container" style="width:1450px">
+
+	<div id="header" style="background-color:#FFA500;text-align:center;">
+	<h1 style="margin-bottom:0;">Visualization of Social Network</h1></div>
+	
+	<aside id="ctrlPanel" style="background-color:steelblue;height:660px;width:200px;float:left;">
+	<b>Control Panel</b><br>
+	<el-divider></el-divider>
+	
+
+	<b>Layout</b><br>
+	  <div id="layoutCtrl">
+
+	  <select v-model="selected" @change='changeLayout'>
+	  <option v-for="option in options" v-bind:value="option.value">
+		{{ option.text }}
+	  </option>
+	</select>
+	<br>
+	<span>Selected: {{selected}}</span><br><br><br>
+  </div>
+
+  <el-divider></el-divider>
+
+
+  <b>Network</b><br>
+  <div id="networkCtrl">
+
+  <select v-model="selected"  @change='changeData'>
+  <option v-for="option in options" v-bind:value="option.value">
+	{{ option.text }}
+  </option>
+</select>
+<br>
+<span>Selected: {{selected}}</span><br><br><br>
+</div>
+
+
+	
+	</aside>
+	
+
+
+	<section id="graphContainer" style="background-color:#EEEEEE;height:660px;width:1050px;float:left;">
+	</section>
+
+	<aside id="displayInfo" style="background-color:steelblue;height:660px;width:200px;float:left;">
+
+	<el-divider></el-divider>
+
+	<b>Display Panel</b><br>
+	<b>Network</b><br>
+	Type:<br>
+	Nodes:<br>
+	Edges:<br><br><br>
+
+    <el-divider></el-divider>
+	<b>Selection</b><br>
+	Nodes:<br>
+	Edges:<br><br><br>
+
+	<el-divider></el-divider>
+	<b>Clicked Item</b><br>
+	Number:<br>
+	Edges:<br><br><br>
+
+
+	</aside>	
+	
+	<div id="footer" style="background-color:#FFA500;clear:both;text-align:center;"> Demo </div>
+	
+	</div>
+
+
+
+
+	
+
+	</body>
+
+
+
+
+	<script>
+
+
+
+
+
+
+
+
+
+
+var LayoutCtrl=new Vue({
+  el: '#layoutCtrl',
+  data: {
+    selected: 'Force Layout',
+    options: [
+      { text: 'Force Layout', value: 'Force Layout' },
+      { text: 'Grid Layout', value: 'Grid Layout' },
+      { text: 'Circular Layout', value: 'Circular Layout' },
+      { text: 'Random Layout', value: 'Random Layout' },
+      { text: 'Fruchterman Layout', value: 'Fruchterman Layout' },
+      { text: 'Concentric Layout', value: 'Concentric Layout' },
+      { text: 'MDS Layout', value: 'MDS Layout' },
+      { text: 'Dagre Layout', value: 'Dagre Layout' },
+      { text: 'Radial Layout', value: 'Radial Layout' },
+      { text: 'Combo Force Layout', value: 'Combo Force Layout' }
+    ]
+  },
+
+  methods: {
+      changeLayout: function(){
+          switch(this.selected){
+              case 'Force Layout':
+              {					
+                  graph.updateLayout({
+                      type: 'force',               // 布局名称
+                      preventOverlap: true,        // 布局参数，是否允许重叠
+                      linkDistance: 100            // 布局参数，边长
+                    });
+                  break;
+              };
+              case 'Grid Layout':
+              {					
+                  graph.updateLayout({
+                      type: 'grid',
+                      begin: [ 0, 0 ],          // 可选，
+                      preventOverlap: true,     // 可选，必须配合 nodeSize
+                      preventOverlapPdding: 20, // 可选
+                      //nodeSize: 30,             // 可选
+                      condense: false,          // 可选
+                      rows: 5,                  // 可选
+                      cols: 5,                  // 可选
+                      sortBy: 'degree',        // 可选
+                      workerEnabled: true,       // 可选，开启 web-worker
+                    });
+                  break;
+              };
+              case 'Circular Layout':
+                  {					
+                      graph.updateLayout({
+                          type: 'circular',
+                          //center: [300, 300], // 可选，默认为图的中心
+                          radius: 250, // 可选
+                          startRadius: 10, // 可选
+                          endRadius: 100, // 可选
+                          clockwise: false, // 可选
+                          divisions: 5, // 可选
+                          ordering: 'degree', // 可选
+                          angleRatio: 1, // 可选
+                        });
+                      break;
+                  };
+              case 'Random Layout':
+                  {					
+                      graph.updateLayout({
+                          type: 'random',
+                          width: 300,
+                          height: 300,
+                          });
+                      break;
+                  };
+              case 'Fruchterman Layout':
+                  {					
+                      graph.updateLayout({
+                          type: 'fruchterman',
+                          center: [ 200, 200 ],     // 可选，默认为图的中心
+                          gravity: 20,              // 可选
+                          speed: 2,                 // 可选
+                          clustering: true,         // 可选
+                          clusterGravity: 30,       // 可选
+                          maxIteration: 2000,       // 可选，迭代次数
+                          workerEnabled: true       // 可选，开启 web-worker  }
+                          });
+                      break;
+                  };
+                  case 'Concentric Layout':
+                      {					
+                          graph.updateLayout({
+                              type: 'concentric',
+                              center: [ 200, 200 ],     // 可选，
+                              linkDistance: 50,         // 可选，边长
+                              preventOverlap: true,     // 可选，必须配合 nodeSize
+                              nodeSize: 30,             // 可选
+                              sweep: 10,                // 可选
+                              equidistant: false,       // 可选
+                              startAngle: 0,            // 可选
+                              clockwise: false,         // 可选
+                              maxLevelDiff: 10,         // 可选
+                              //sortBy: 'degree'          // 可选
+                              workerEnabled: true       // 可选，开启 web-worker
+                              });
+                          break;
+                      };
+                  case 'MDS Layout':
+                      {					
+                          graph.updateLayout({
+                              type: 'mds',
+                              });
+                          break;
+                      };
+                  case 'Dagre Layout':
+                      {					
+                          graph.updateLayout({
+                              type: 'dagre',
+                              rankdir: 'LR', // 可选，默认为图的中心
+                              align: 'DL', // 可选
+                              nodesep: 10, // 可选
+                              ranksep: 10, // 可选
+                              controlPoints: true, // 可选
+                              });
+                          break;
+                      };		
+                  case 'Radial Layout':
+                      {					
+                          graph.updateLayout({
+                              type: 'radial',
+                              center: [ 200, 200 ],     // 可选，默认为图的中心
+                              linkDistance: 50,         // 可选，边长
+                              maxIteration: 1000,       // 可选
+                              focusNode: '11',      // 可选
+                              unitRadius: 100,          // 可选
+                              preventOverlap: true,     // 可选，必须配合 nodeSize
+                              nodeSize: 30,             // 可选
+                              strictRadial: false,      // 可选
+                              workerEnabled: true       // 可选，开启 web-worker
+                              });
+                          break;
+                      };	
+                  case 'Combo Force Layout':
+                      {					
+                          graph.updateLayout({
+                              type: 'comboForce',
+                              center: [ 600, 600 ],     // 可选，默认为图的中心
+                              linkDistance: 50,         // 可选，边长
+                              nodeStrength: 30,         // 可选
+                              edgeStrength: 0.1,        // 可选
+                              onTick: () => {           // 可选
+                                  console.log('ticking');
+                              },
+                              onLayoutEnd: () => {      // 可选
+                                  console.log('combo force layout done');
+                              }
+                              });
+                          break;
+                      };
+                  
+          }
+      }
+  }
+
+
+
+})
+
+
+
+
+var networkCtrl=new Vue({
+  el: '#networkCtrl',
+  data: {
+    selected: 'Read Books Combo Case',
+    options: [
+      { text: 'Read Books Combo  Case', value: 'Read Books Combo Case' },
+      { text: 'Social Network Case2', value: 'Social Network Case2' },
+      { text: 'Timeline Network Case', value: 'Timeline Network Case' },
+      { text: 'Geography Network Case', value: 'Geography Network Case' }
+    ]
+  },
+
+  methods: {
+      changeData: function(){
+          switch(this.selected){
+              case 'Read Books Combo Case':
+                  {
+                      //graph.changeData(data);	
+                      //LayoutCtrl.selected="Force Layout";	
+                      localJsonFile='.\sna.json';
+
+                      LayoutCtrl.selected="comboForce";	
+
+                      graph.updateLayout({
+                          type: 'comboForce',
+                          center: [ 350, 350 ],     // 可选，默认为图的中心
+                          linkDistance: 50,         // 可选，边长
+                          nodeStrength: 30,         // 可选
+                          edgeStrength: 0.1,        // 可选
+                      });
+
+                      visualize();
+                                          
+                      break;
+                  };
+              case 'Social Network Case2':
+              {
+                  //graph.changeData(data2);	
+                  LayoutCtrl.selected="Force Layout";	
+                  localJsonFile='.\sna2.json';
+
+                  graph.updateLayout({
+                      type: 'force',               // 布局名称
+                      preventOverlap: true,        // 布局参数，是否允许重叠
+                      linkDistance: 100            // 布局参数，边长
+                    });
+
+
+
+                  visualize();
+
+                  break;
+              }
+          }
+          return this.selected;
+        }
+  }
+})
+
+
+
+
+
+
+
+  
+
+
+// 实例化 Minimap 插件
+const minimap = new G6.Minimap({
+size: [ 100, 100 ],
+className: "minimap",
+type: 'delegate'
+});
+
+// 实例化 ToolBar 插件
+const toolbar = new G6.ToolBar();
+
+
+
+
+
+
+
+
+//const edgeBundling = new G6.Bundling({
+//bundleThreshold: 0.8,
+//K: 200
+//});
+
+
+// 创建 G6 图实例
+const graph = new G6.Graph({
+  container: 'graphContainer', // 指定图画布的容器 id
+  //fitView:true,
+  //fitViewPadding: [20, 40, 50, 20],
+  //fitCenter:true,
+  // 画布宽高
+  width: 1050,
+  height: 550,
+
+  groupByTypes: false,
+
+  defaultCombo: {
+      // 其他属性
+      style: {
+        fill: '#LightBlue',
+        stroke: '#eaff8f',
+        lineWidth: 5,
+        // 其他属性
+      },
+      labelCfg: {
+          position: 'top',
+          offset: [10, 10, 10, 10],
+          style: {
+            fill: '#green',
+          },
+        },
+  },
+
+  animate: true, // Boolean，可选，全局变化时否使用动画过渡
+  plugins: [ minimap,toolbar],    // 将 Minimap 和 Grid 插件的实例配置到图上
+
+
+  // 节点在默认状态下的样式配置（style）和其他配置
+defaultNode: {
+  size: 20, // 节点大小
+  // ...                 // 节点的其他配置
+  // 节点样式配置
+
+
+  style: {
+    fill: 'steelblue', // 节点填充色
+    stroke: '#666', // 节点描边色
+    lineWidth: 1, // 节点描边粗细
+  },
+  // 节点上的标签文本配置
+  labelCfg: {
+    // 节点上的标签文本样式配置
+    style: {
+      fill: '#purple', // 节点标签文字颜色
+      fontSize:10,
+    },
+  },
+},
+// 边在默认状态下的样式配置（style）和其他配置
+defaultEdge: {
+  // ...                 // 边的其他配置
+  // 边样式配置
+  style: {
+      endArrow: {
+          path: G6.Arrow.triangle(10, 20, 25), // 使用内置箭头路径函数，参数为箭头的 宽度、长度、偏移量（默认为 0，与 d 对应）
+          d: 25
+        },
+        startArrow: {
+          path: G6.Arrow.vee(15, 20, 15), // 使用内置箭头路径函数，参数为箭头的 宽度、长度、偏移量（默认为 0，与 d 对应）
+          d: 15
+        },
+
+    opacity: 0.6, // 边透明度
+    stroke: 'orange', // 边描边颜色
+  },
+  // 边上的标签文本配置
+  labelCfg: {
+    autoRotate: true, // 边上的标签文本根据边的方向旋转
+  },
+},
+
+
+
+layout: {                // Object，可选，布局的方法及其配置项，默认为 random 布局。
+  type: 'force',         // 指定为力导向布局
+  preventOverlap: true,  // 防止节点重叠
+  linkDistance: 100, // 指定边距离为100
+
+
+  //type: 'comboForce',
+  //center: [ 100, 100 ],     // 可选，默认为图的中心
+  //linkDistance: 50,         // 可选，边长
+  //nodeStrength: 30,         // 可选
+  //edgeStrength: 0.1,        // 可选
+},
+
+modes: {
+  default: [
+    'drag-canvas', 
+    'zoom-canvas', 
+    'drag-node',
+    'drag-combo', 
+    'collapse-expand-combo',
+    {
+      type: 'tooltip', // 提示框
+      formatText(model) {
+        // 提示框文本内容
+        const text = 'label: ' + model.label + '<br/> class: ' + model.class;
+        return text;
+      },
+    },
+
+    {
+      type: 'edge-tooltip', // 边提示框
+      formatText(model) {
+        // 边提示框文本内容
+        const text =
+          'source: ' +
+          model.source +
+          '<br/> target: ' +
+          model.target +
+          '<br/> relation: ' +
+          model.relation;
+        return text;
+      }
+    },
+
+
+    {
+      type: 'click-select',
+      trigger: 'ctrl',
+    },
+
+
+
+  ], // 允许拖拽画布、放缩画布、拖拽节点
+
+
+
+
+
+
+
+},
+
+
+// 节点不同状态下的样式集合
+nodeStateStyles: {
+  // 鼠标 hover 上节点，即 hover 状态为 true 时的样式
+  hover: {
+    fill: 'red',
+  },
+  // 鼠标点击节点，即 click 状态为 true 时的样式
+  click: {
+    stroke: '#green',
+    lineWidth: 2,
+  },
+},
+// 边不同状态下的样式集合
+edgeStateStyles: {
+  // 鼠标点击边，即 click 状态为 true 时的样式
+
+
+  hover: {
+    fill: 'yellow',
+  },
+
+  click: {
+    stroke: 'red',
+  },
+},
+
+
+  });
+
+  
+
+
+
+  // 鼠标进入节点
+  graph.on('node:mouseenter', e => {
+  const nodeItem = e.item; // 获取鼠标进入的节点元素对象
+  graph.setItemState(nodeItem, 'hover', true); // 设置当前节点的 hover 状态为 true
+  });
+  
+  // 鼠标离开节点
+  graph.on('node:mouseleave', e => {
+  const nodeItem = e.item; // 获取鼠标离开的节点元素对象
+  graph.setItemState(nodeItem, 'hover', false); // 设置当前节点的 hover 状态为 false
+  });
+  
+  // 点击节点
+  graph.on('node:click', e => {
+  // 先将所有当前是 click 状态的节点置为非 click 状态
+  const clickNodes = graph.findAllByState('node', 'click');
+  clickNodes.forEach(cn => {
+      graph.setItemState(cn, 'click', false);
+  });
+  const nodeItem = e.item; // 获取被点击的节点元素对象
+  graph.setItemState(nodeItem, 'click', true); // 设置当前节点的 click 状态为 true
+  });
+  
+  // 点击边
+  graph.on('edge:click', e => {
+  // 先将所有当前是 click 状态的边置为非 click 状态
+  const clickEdges = graph.findAllByState('edge', 'click');
+  clickEdges.forEach(ce => {
+      graph.setItemState(ce, 'click', false);
+  });
+  const edgeItem = e.item; // 获取被点击的边元素对象
+  graph.setItemState(edgeItem, 'click', true); // 设置当前边的 click 状态为 true
+  });
+
+
+  //let statisticsInfo:number;
+
+  function getStatisticsInfo(jsonData){
+
+
+      let numOfNodes=0;
+      let numOfEdges=0;
+      const nodes = jsonData.nodes;
+      const edges = jsonData.edges;
+      nodes.forEach(node => {
+        if (!node.style) {
+          node.style = {};
+        }
+        
+
+        numOfNodes++;
+
+
+
+        node.style.lineWidth = 1;
+        node.style.stroke = '#666';
+        
+        switch (node.class) {
+          case 'person': {
+            node.shape = 'circle';
+            node.size = 40;
+            node.style.fill = 'steelblue';
+            node.label=node.id;
+            node.comboId='comboA';
+            break;
+          }
+          case 'book': {
+            node.shape = 'rect';
+            node.size = [35, 20];
+            node.style.fill = 'green';
+            node.label=node.id;
+            node.comboId='comboB';
+            break;
+          }
+          case 'place': {
+            node.shape = 'ellipse';
+            node.size = [35, 20];
+            node.style.fill = 'orange';
+            node.label=node.id;
+            node.comboId='comboC';
+            break;
+          }
+
+          case 'c0': {
+              node.shape = 'circle';
+              node.size = 20;
+              node.style.fill = 'steelblue';
+              node.label=node.id;
+              break;
+            }
+          case 'c1': {
+              node.shape = 'rect';
+              node.size = [25, 15];
+              node.style.fill = 'green';
+              node.label=node.id;
+              break;
+          }
+          case 'c2': {
+          node.shape = 'ellipse';
+          node.size = [25, 15];
+          node.style.fill = 'orange';
+          node.label=node.id;
+          break;
+          }
+        }
+      });
+
+      console.log(numOfNodes);
+
+      edges.forEach(edge => {
+        if (!edge.style) {
+          edge.style = {};
+        }
+
+        numOfEdges++;
+        
+        switch (edge.relation) {
+          case 'Read': {
+            edge.label = 'Read';
+            break;
+          }
+          case 'At': {
+              edge.label = 'At';
+              break;
+            }
+            case 'Visit': {
+              edge.label = 'Visit';
+              break;
+            }
+          }
+
+        edge.style.lineWidth = edge.weight;
+        edge.style.opacity = 0.6;
+        edge.style.stroke = 'grey';
+      });
+
+      //statisticsInfo[0]=numOfNodes;
+      //statisticsInfo[1]=numOfEdges;
+
+      //return numOfNodes;
+
+      //return 2;
+  }
+
+
+
+
+
+  var localJsonFile='.\sna.json';
+
+  graph.updateLayout({
+      type: 'comboForce',
+      center: [ 350, 350 ],     // 可选，默认为图的中心
+      linkDistance: 50,         // 可选，边长
+      nodeStrength: 30,         // 可选
+      edgeStrength: 0.1,        // 可选
+  });
+
+
+  LayoutCtrl.selected="Combo Force Layout";
+
+  var jsonData;
+  //var info:number;
+  const visualize = async () => {
+      const response = await fetch('https://raw.githubusercontent.com/yzq1979/jsoneditor/develop/sna2.json');
+       jsonData = await response.json();
+
+getStatisticsInfo(jsonData);	//计算统计信息
+      
+      //edgeBundling.bundling(jsonData);
+      graph.data(jsonData); // 加载数据
+      graph.render(); // 渲染		
+
+
+};
+
+
+
+visualize();
+
+
+
+
+
+
+
+
+
+	</script>
+
+
+
+
+	
+
+
+
+	
+</html>
