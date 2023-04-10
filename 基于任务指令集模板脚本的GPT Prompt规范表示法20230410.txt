@@ -1,1609 +1,0 @@
-﻿
-基于任务指令集模板脚本的GPT Prompt规范表示法
-
-
-
-摘要： 
-　　在处理复杂、多样化和模糊的任务时，基于自然语言描述的Prompt容易引入歧义和噪声，有必要采用某种规范化表达方法，用于将自然语言描述转换为预训练语言模型（如GPT）可接受的输入格式，在适当增加复杂性的同时，极大增强Prompt的精确表达能力、可读性、可解释性和可重用性，从而提高提高Prompt工程的质量和效率。本文提出了一种基于任务指令集模板脚本的方法，用来构建GPT Prompt的规范化表达，旨在解决目前Prompt工程中存在的问题，如Prompt的设计缺乏规范性、可复用性和可扩展性，以及Prompt与模型之间的交互缺乏灵活性和可控性。本文参照常见脚本语言的设计，设计了一种模板脚本，包括设计原则、语法规则、任务指令集，该方法主要包括两个步骤：首先，使用一种任务指令集来归纳Prompt的自然语言描述，以凸显出其中的任务指令和参数，可根据不同的任务和场景在手动或者自动生成合适的Prompt时使用；其次，使用合适的语法规则，组织这些指令集，用来表达原始Prompt的自然语言描述中蕴含的顺序、循环、选择判断、前提、测试等语义。
-
-关键词： 任务指令集模板；GPT；Prompt; 脚本；规范化表达
-
-一、 引言[志杨1]
-1.1 动机和背景
-　　大型生成式预训练模型（Generative Pre-trained Model, GPT） 是一种基于Transformer的大型语言模型，能够处理多种自然语言处理任务，如文本摘要、对话生成、机器翻译甚至图像生成。通过在大规模文本数据上进行无监督学习，获得了强大的语言表示能力，具有强大的生成能力和泛化能力，可通过微调或者零样本学习来适应不同的下游任务。在开放领域对话任务上取得了令人瞩目的效果。GPT已经成为各种自然语言生成任务（NLG）中最强大且最灵活的工具之一。
-　　 通常使用的自然语言描述方法是通过使用自然语言来表达用户意图、情感、话题等信息，并将其作为Prompt传给GPT模型，从而引导它生成更加合理的回复。这种方法是对用户最友好最自然的一种人机交互方式，同时可以有效地利用GPT模型强大的文本生成能力，并在不需要编写代码或修改模型结构的情况下实现多样化和个性化的对话功能。
-　　由于自然语言描述具有的灵活性、多样性模糊性，增加人机交互的复杂性和挑战性，在使用GPT 模型进行NLG 时，如何设计和构造有效的Prompt是一个关键问题。GPT回答的精准程度，很大程度依赖于用户输入的Prompt，不恰当的Prompt会导致生成质量不稳定、缺乏多样性、难以控制等问题。这就对用户编写Prompt的技巧和多次对话的沟通技巧有较高要求。 
-　　目前，已有一些研究工作探索了如何设计和生成有效的Prompt。这些工作主要分为两类：一类是基于人工设计的Prompt Engineering方法，即由专家或者用户根据经验或者指导来设计不同任务的Prompt规范化表达；另一类是基于自动学习的Prompt Tuning方法，即利用数据驱动或者元学习等技术来自动学习不同任务的Prompt。两者的区别在于是否使用自动化工具来优化Prompt。Prompt Engineering是指通过设计不同的输入格式来描述任务，例如问题、指令或示例，从而引导语言模型生成高质量的响应。 Prompt Engineering需要用户尝试不同的提示，例如通过少量学习（few shot learning），来找到最佳的提示。Prompt Tuning是一种在Prompt Engineering的基础上进行优化的技术。Prompt Tuning涉及调整提示的表示，以提高语言模型响应的质量。 Prompt Tuning不需要用户手动试验不同的提示，而是通过数据科学家和自动化工具来比较和优化不同的提示选项，针对特定的任务。
-　　现有的Prompt表示形式和创建方法都存在一些问题和局限性，基于人工设计的方法需要大量的人力和时间成本，并且往往具有技巧性，并且难以保证Prompt规范化表达的质量和一致性，创建和对这些 Prompt 进行实验需要大量的时间和经验，特别是对于一些复杂的任务，即使是经验丰富的 Prompt 设计者可能也无法手工发现最佳的 Prompt；基于自动学习的方法需要大量的标注数据或者额外的模型参数，并且难以解释和理解Prompt规范化表达的含义和作用；无论是基于人工设计还是基于自动学习的方法，都缺乏一个统一和标准化的Prompt规范化表达体系，导致不同任务和领域之间难以进行交互和迁移； 现有的Prompt规范化表达方法都难以处理复杂、多样、模糊等自然语言描述，容易引入歧义和噪声，影响GPT理解和生成的效果。
-　　为了解决上述问题，本文提出了一种基于任务指令集（Task Instruction Set，TIS）的方法，将Prompt编写过程抽象为依据模板编写一种脚本进行规范表达（Scripted Specification Expression，SSE），并给出了一些实例和评估结果。这种方法可以提高Prompt编写的效率和质量，同时也可以方便地扩展到不同的任务和领域。这种基于任务指令集模板脚本的Prompt规范化表示方法，将用户给出的自然语言描述中的包含丰富而隐含的语义的关键信息显式提取出来，并按照一定的规则和格式组织起来的方法，在保留自然语言描述（NLD）提供更灵活和更直观 的交互方式同时，通过利用任务指令集模板脚本进行规范化表示的Prompt生成方法，提供更精确和更通用的语义约束。这样以一种结构化规范化的方式呈现给GPT模型，可以帮助GPT更好地理解用户的意图和需求，生成更符合用户期望和场景需求的回复，从而有效地提高GPT理解和生成的效果，并与现有的Prompt生成方法相比，方法既能够充分利用自然语言描述的自然性和灵活性，又能够有效地提高自然语言描述的结构性和一致性，在处理复杂、多样、模糊等自然语言描述时具有明显的优势，且具有较强的鲁棒性和灵活性。
-　　　任务指令集模板脚本方法此处是指利用模板脚本来构造提示（Prompt）的技术，利用语言模型的先验知识，用于改善基于GPT模型的聊天机器人生成效果，生成更加准确和连贯的回复。任务指令集模板脚本方法可以有效地利用GPT模型强大的文本生成能力，并在不需要编写复杂代码或修改模型结构的情况下实现多样化和个性化的对话功能。此外，这种语言模板脚本的规范化表示方法，也有利于计算机理解，便于构建相应软件工具，自动化生成Prompt，在复杂生成任务时，快捷生成地能清晰准确描述的Prompt。在小样本学习或零样本学习的场景中，通过这种表示方法，可以提高语言模型在不同任务上的泛化能力
-　　本文的主要贡献和创新点如下：
-　　提出了一种新颖的任务指令集模板脚本，用于规范化表示自然语言描述中的关键信息，覆盖面广、结构清晰、易于扩展；通用性强、灵活性高、效果好；
-　　提出了一种基于GPT的Prompt规范化表达方法，用于将自然语言描述转换为GPT可接受的输入格式，能有效提高GPT理解和生成的效果以及处理复杂、多样、模糊场景的自然语言描述Prompt的表达能力、泛化能力、控制能力和适应能力。
-
-1.2 相关工作
-1. Prompt工程中的模式识别和分类
-　　 Arxiv 研究了Prompt工程中的模式识别和分类，提出了一个提示模式目录（Prompt Pattern Catalog），即收集并分类了多种常用的自然语言描述方法，并分析了其优缺点和适用场景；该方法使用GPT模型在混合字符串上生成回复，并将回复中包含的语义标签替换为相应的词汇。但没有说明如何保证生成回复中包含正确且完整的语义标签，以及如何进行替换操作。这可能导致生成回复中出现错误或缺失的词汇，或者破坏回复的逻辑和连贯性。提出了一些用于提示工程的模式或模板，以及如何根据不同的任务或领域来选择或组合这些模式 。这些模式可以帮助提示工程师快速构建有效的提示，以及避免一些常见的错误。
-2. Prompt中的语义标签
-　　　基于人工设计的方法通常需要大量的人力和时间成本，并且难以保证Prompt的质量和一致性。例如，Shin et al. [1] 提出了一种基于人工设计的Prompt生成框架，该框架包括三个步骤：（1）定义任务类型和输入输出格式；（2）根据任务类型和输入输出格式选择合适的关键词和占位符；（3）根据关键词和占位符组合成完整的Prompt。该框架虽然能够生成一些有效的Prompt，但是需要专家或者用户具备一定的领域知识和经验，并且对于不同版本和规模的预训练语言模型可能需要重新设计和调整。
-　　　Arxiv1提出了一种基于GPT的有序重要性语义通信方案（SCOI），即使用语义标签来表示用户意图、情感、话题等信息，并按照重要性顺序排列，从而引导GPT扮演一个咨询助手的角色，并生成更加合理和有趣的回复；
-　　　LinkedIn3探讨了如何使用Montague语法和Coq证明助手来进行GPT Semantic Testing，即使用语义标签来表示自然语言的形式语义，并通过类型检查和子类型推断来验证GPT生成回复是否符合预期。
-3. 前缀模板和后缀模板
-　　Allabtai介绍了如何构建一个强大的“序列提示”（Sequence Prompt），即使用多个自然语言描述组成一个长提示，并通过特殊符号或标记来控制GPT模型生成回复时的顺序和逻辑；该方法没有充分利用语义标签的信息，只是简单地将它们拼接到用户输入的自然语言消息中，而没有考虑它们与词汇之间的关系和作用。这可能导致模型无法区分语义标签和词汇，或者忽略语义标签对生成结果的影响。
-　　　Prompt是一种由具体的中文或英文词汇组成的提示，它是人工可读的提示。Prompt可以用来指导预训练模型完成特定的任务，例如对话生成、文本分类、问答等。Prompt 主要有两种主要类型：填充文本字符串空白的完形填空（Cloze）Prompt，和用于延续字符串前缀的前缀 (Prefix) Prompt。选择哪一个取决于任务和用于解决任务的模型。一般来说，对于有关生成的任务或使用标准自回归 LM 解决的任务，前缀 Prompt 往往更有帮助，因为它们与模型从左到右的性质刚好吻合。
-　　　创建 Prompt 最自然的方式也许是基于手工创建比较直观的模板。例如， LAMA 数据集提供了手工创建的完形填空模板来探索 LM 中的知识。Brown 等在 2020 年创建了手工制作的前缀 Prompt 来处理各种各样的任务，包括问答、翻译和常识推理的探索任务。
-
-1.3 论文组织
-　本文的组织结构如下：第二节介绍背景和相关工作；第三节介绍本文提出的基于任务指令集模板脚本的规范化方法；第三节总结本文并展望未来工作。
-　　　
-二、 基于任务指令集的模板脚本
-　　自然语言来表达用户意图、情感、话题等信息，并将其作为提示传给GPT模型。该方法简单易用，但是缺乏形式化和系统化的指导原则，并且不能有效地控制或纠正GPT生成过程，特别是用来描述复杂任务时，不够精炼准确，同时也不够规范化，需要进行比较复杂的转换后才能被计算机系统理解。针对这种情况，我们可以通过在自然语言描述中添加任务指令集模板脚本的方式，对现有的原始的Prompt进行格式重构（Reformat）或者直接采用这种方式编写Prompt输入给GPT模型。这种方法可以看作是一种基于语义和描述的Prompt设计策略，它旨在利用用户输入中的隐含语义信息和描述信息来指导GPT模型生成更符合用户期望和场景需求的回复。
-　　从终端用户的角度，这种表达 Prompt 的方法结合使用了模板脚本关键字和自然语言描述相结合的方式来定义生成Prompt的条件和要求，模板脚本关键字可以帮助GPT识别出关键词和变量，自然语言描述可以帮助GPT理解上下文和目的。可以帮助用户更加清晰和规范地定义用户的输入和输出的格式，方便用户控制和调整 GPT 的行为和结果。同时这种方法也可以帮助用户提高输入的质量和效率，避免输入一些不必要或不相关的信息。此外，它使用了在内容中判断、限制等语句来对生成Prompt的内容进行一些约束和过滤，使其更加符合题目要求和逻辑。这样可以避免GPT生成一些不相关或错误的内容。这种方法还可以帮助用户更好地利用 GPT 的多任务能力，让它根据不同的模板脚本完成不同的任务，例如生成文本，搜索信息，提供建议等。
-　　Prompt模板脚本规范化的基本思想是融入编程思维，将一个Prompt按照指定输出的格式、内容、逻辑进行类似脚本语言的方式进行表达。作为一种规范化的表达方式，Prompt脚本可以直接输入作为GPT能够理解和执行的输入指令，也可以用作用户自然语言Prompt转换后的目标Prompt，改善其输出的可控制和精准度。
-　　如上所述，在有效构建Prompt的过程中，“基于自然语言描述的提示工程”和“形式化代码描述”这两种方法各有千秋。若能结合两种办法，取长补短，则是一种值得深入探索的有效途径。基于这种考虑，本文提出基于任务指令集模板脚本这种描述Prompt的方式，用来规范化Prompt有效提升GPT生成效果。期望在交互自然和严谨准确之间折衷，在不明显降低用户的人机交互体验的前提下，尽可能地用Prompt严谨精准表达出用户的意图。使用一种用于与GPT互动对话的Prompt的通用标注式描述方式，满足清晰、专注、相关、连贯这些基本原则，吸收Prompt engineering的实践经验，让GPT知道你想要它做什么，从而生成一个更精准的回答。通过优化混合语义标签和自然语言描述的权重来平衡Prompt的表达能力和控制能力，通过预定义的格式和结构来规范输入信息，并通过特殊符号或词汇来引导模型生成期望的输出内容。这种混合方法既能保证Prompt 的交互自然性，又能提高Prompt 的严谨准确性，在不明显降低用户人机交互体验的前提下，尽可能地用Prompt 严谨精准表达出用户意图。
-　　与其他Prompt 表示方法相比，这种方法具有以下优点：（1）容易理解和解释，可以反映出任务的语义和逻辑，可以有效地减少输入信息的歧义和冗余；（2）容易复用和迁移，可以在不同的模型和数据集上使用，可以方便地适应不同的任务和领域；（3）可以灵活地组合使用，以实现更复杂且多样化的NLG 效果。（4）容易通过文本接口输入和输出，可以与用户交互。（5）提高了提示的通用性和可复用性，可以通过组合不同的脚本来生成不同的提示，而不需要针对每个任务或领域重新设计提示。（6）提高了提示的可控性和可靠性，可以通过脚本来指定输出的格式、内容、逻辑和目标，从而避免GPT生成过程中可能出现的错误或不合理之处。
-（7）提高了提示的可解释性和可信度，可以通过脚本来给出提示的来源、置信度、原因等信息，从而增加用户对GPT输出结果的信任和理解。
-2.1 设计原则
-　　任务指令集模板脚本是一种将自然语言描述中的关键信息用预定义的模板脚本语法规则来规范化表示的方法，它可以帮助理解和处理自然语言描述中的语义和结构。它既能够提高自然语言描述的质量和一致性，又能够增加自然语言描述的可读性和可解释性。因此，如何有效地进行任务指令集模板脚本是一个重要且困难的问题。
-　　为了贴近最佳实践，以下是在设计过程中，拟定的一些设计原则：
-　　
-(1) 不要引入过多标记符号，要高度简洁、易于读写
-　　充分考虑到用户手动创建Prompt和适应简单任务场景的的需求，可以根据任务的特点和需求灵活地设计和调整Prompt的形式和内容
-(2) 具备良好兼容性和可扩展性，能规范化表达不同任务场景下的Prompt 
-　　将语义标签划分为通用语义标签和领域相关的专用语义标签。
-　　选取通用的语义标签，用作语义标签的关键字，进行分组，每个组斟酌选择若干有概括力的关键字。目前是让用户在描述具体任务时，选取这些通用的语义标签。对于行业相关的任务，可以选择专用的语义标签，但是需要在Prompt用类似的语法进行解释。
-　　GPT在训练的过程中，通常均能针对这些通用的语义标签进行优化，使模型理解其中的丰富含义，并可根据需要进一步对领域相关的专用语义标签进行训练。
-(3) 容易被机器解析与处理
-　　能够充分利用GPT预训练大模型所具备的先验知识和推理能力，用简短的命令触发模型内部一系列期望的反应。泛化能力不足和性能不稳定的问题。
-　　基于前缀Prompt的方法，与GPT的自回归模型的性质相匹配，可以有效地将语言模型应用到不同的NLP任务上。作为前缀的语义标签可以提供更多的语义信息和任务指导，从而提高GPT的生成质量和多样性。
-
-
-(4) 明确性
-　　即使用明确的标签来表示自然语言描述中的关键信息，避免歧义和噪声；
-(5) 结构性
-　　即使用结构化的方式来组织自然语言描述中的关键信息，反映其层次和逻辑关系；
-(6) 通用性
-　　即使用通用的标签体系来表示不同任务和领域的自然语言描述，提高其可交互和可迁移性。
-(7) 尽量具体
-尽可能少留解读空间。 限制操作空间。
-(8) 具有描述性。 
-使用类比。
-(9) 强调。
- 有时可能需要对模型进行重复操作。 在主要内容之前和之后提供说明，使用指令和提示等。
-(10) 给事项排序。
- 向模型呈现信息的顺序可能会影响输出。 你选择是在内容之前放置指令（“汇总以下内容...”）还是之后（“汇总以上...”）会影响输出。 即使是少样本示例的顺序也很重要。 这被称为“近因偏差”。
-(11) 给模型一个“出路”。
- 如果模型无法完成分配的任务，有时为模型提供备用路径可能会有所帮助。 例如，在对一段文本提出问题时，可以加入类似于“如果答案不存在，则回复‘未找到’”之类的内容。 这有助于避免模型生成错误响应。
-
-Azure OpenAI 服务 - Azure OpenAI | Microsoft Learn
-最佳做法
-　　
-　　
-　　
-　　
-2.2 模板脚本的语法规则
-　　保留GPT以自然语言输入的优点，参考JSON格式、Markdown等标记语言，本文设计使用一种表示方法，更简洁和一致的符号来表示不同层级的语义标签和内容。
-
-1. 符号
-　　使用冒号“:”和逗号“,”来分隔同一层级的关键字和内容，使用中括号“[ ]”来包含分组信息。这样可以避免使用过多不同形状的括号，提高可读性和易用性，“#”表示注释，使用了换行来表示Prompt的层次结构和逻辑关系。
-
-我们定义了以下几种类型的语义标签：
-
-- 实体（Entity），用于表示自然语言描述中的主要对象，如人、物、地点、时间等。实体用尖括号（< >）表示，如“<北京>”、“<2021年>”等；
-- 属性（Attribute），用于表示自然语言描述中的次要特征，如颜色、大小、形状等。属性用方括号（[ ]）表示，如“[红色]”、“[大型]”等；
-- 关系（Relation），用于表示自然语言描述中的实体之间的联系，如属于、包含、相邻等。关系用花括号（{ }）表示，如“{属于}”、“{包含}”等；
-- 约束（Constraint），用于表示自然语言描述中的条件或者限制，如最大、最小、排序等。约束用圆括号（( )）表示，如“(最大)”、“(排序)”等；
-- 连接词（Connector），用于表示自然语言描述中的逻辑连接词，如并且、或者、如果等。连接词用双引号（" "）表示，如“"并且"”、“"或者"”等。
-
-
-2. 规则
-
-为了控制输出的精准度，更好地表达和实现用户的意图，Promt采用的这套指令集，还有以下一些规则、定义或者限制：
-
-
-所有的指令都必须以#开头，例如#generate_image。
-
-所有的参数都必须以冒号分隔，例如width: 128。
-
-所有的参数都必须在同一行，不能换行，例如#generate_image a cartoon cat width: 128 height: 128 style: cartoon。
-
-所有的指令和参数都不区分大小写，例如#generate_image和#GENERATE_IMAGE是等效的。
-
-所有的指令和参数都必须用空格分隔，不能用逗号、分号或其他符号，例如#generate_image a cartoon cat width: 128 height: 128 style: cartoon。
-
-所有的指令和参数都必须用英文输入，不能用其他语言，例如#generate_image a cartoon cat width: 128 height: 128 style: cartoon。
-
-所有的指令和参数都必须符合语法和逻辑规则，不能输入无意义或错误的内容，例如#generate_image a cartoon cat width: -1 height: 0 style: realistic。
-
-所有的文本描述都必须用括号包围，并用逗号分隔，例如(name, gender, age, appearance)。
-
-所有的循环结构都必须用for关键字，后面跟一个变量名，一个in关键字，一个范围或列表，一个冒号，和一个缩进的循环体。例如：
-
-for i in 1 to 10: print i
-
-所有的选择判断结构都必须用if关键字，后面跟一个条件表达式，一个冒号，和一个缩进的执行体。可以使用elif关键字添加其他条件分支，也可以使用else关键字添加默认分支。例如：
-
-if x > 0: print “x is positive” elif x < 0: print “x is negative” else: print “x is zero”
-
-
-
-任务指令集是一种用于描述用户需求和目标的语言，它由以下几个元素组成：
-• 信息来源：指定用户需要参考的网址或文档，可以有多个。
-• 生成内容：指定用户需要生成的内容的类型和数量，例如试卷、文章、代码等。
-• 格式要求：指定用户需要生成的内容的格式和规范，例如字数、结构、样式等。
-• 输出格式：指定用户需要生成的内容的输出格式，例如markdown、html、pdf等。
-• 生成工具：指定用户需要使用的生成工具，例如GPT或其他模型。
-任务指令集的语法和语义如下：
-• 每个元素用一个冒号（:）分隔，冒号后面跟着该元素的具体内容。
-• 每个元素占一行，换行符（\n）表示元素之间的分隔。
-• 如果某个元素有多个内容，用逗号（,）分隔，逗号后面跟着该元素的下一个内容。
-• 如果某个元素有子元素，用一个短横线（-）分隔，短横线后面跟着该元素的子元素。
-• 如果某个子元素有多个内容，用斜杠（/）分隔，斜杠后面跟着该子元素的下一个内容。
-
-
-TISTS的语法和语义
-TISTS是一种基于元数据的脚本语言，可以用来描述一个任务的输入、输出、参数、约束、评价等信息，并生成相应的GPT Prompt。TISTS的语法可以用扩展巴科斯范式（EBNF）来定义，如下：
-TISTS = {Meta} Task
-Meta = "<" Key "=" Value ">"
-Key = "name" | "description" | "author" | "date" | "version" | "model"
-Value = string
-Task = Input Output [Param] [Constraint] [Evaluation]
-Input = "Input:" Type ":" Example {Example}
-Output = "Output:" Type ":" Example {Example}
-Type = "text" | "image" | "audio" | "video" | "table" | "graph"
-Example = string
-Param = "Param:" Name ":" Value {Name ":" Value}
-Name = string
-Value = string | number | boolean
-Constraint = "Constraint:" Condition {Condition}
-Condition = string
-Evaluation = "Evaluation:" Metric {Metric}
-Metric = string
-TISTS的语义可以用自然语言来描述，如下：
-• TISTS由一个或多个元数据（Meta）和一个任务（Task）组成。
-• 元数据用来描述一些与任务相关的信息，比如任务的名称、描述、作者、日期、版本、适用的预训练语言模型等。元数据以键值对（Key=Value）的形式出现，用尖括号（<>）括起来。
-• 任务由输入（Input）、输出（Output）、参数（Param）、约束（Constraint）和评价（Evaluation）五部分组成，其中只有输入和输出是必须的，其他部分是可选的。
-• 输入和输出用来描述任务的输入和输出类型和示例，类型可以是文本、图像、音频、视频、表格或图形等，示例是一些具体的输入或输出内容，用字符串表示。输入和输出以冒号（:）分隔类型和示例，可以有多个示例，每个示例占一行。
-• 参数用来描述任务的一些可调节的参数，比如最大长度、温度、重复度等。参数以冒号（:）分隔参数名和参数值，可以有多个参数，每个参数占一行。参数值可以是字符串、数字或布尔值。
-• 约束用来描述任务的一些限制条件，比如输出不能包含敏感词、输入必须符合某种格式等。约束以字符串表示，可以有多个约束，每个约束占一行。
-• 评价用来描述任务的一些评价指标，比如准确率、召回率、BLEU分数等。评价以字符串表示，可以有多个评价指标，每个指标占一行。
-TISTS编译器可以将TISTS脚本转换为GPT-3或其他预训练语言模型可以接受的Prompt格式。具体的转换规则如下：
-• 对于每个元数据，编译器将其转换为注释形式，在键值对前加上“#”符号。
-• 对于输入和输出部分，编译器将其转换为示例形式，在每个示例前加上“Q:”或“A:”符号，表示问题或答案。
-• 对于参数部分，编译器将其转换为设置形式，在每个参数前加上“##”符号，并根据不同的预训练语言模型使用不同的设置语法。
-• 对于约束部分，编译器将其转换为过滤形式，在每个约束前加上“###”符号，并根据不同的预训练语言模型使用不同的过滤语法。
-• 对于评价部分
-
-
-• 对于评价部分，编译器将其转换为评估形式，在每个评价指标前加上“####”符号，并根据不同的预训练语言模型使用不同的评估语法。
-• 编译器还会在最后加上一个“Q:”符号，表示需要输入一个问题，以触发预训练语言模型的输出。
-以下是一个TISTS脚本和对应的GPT Prompt的例子：
-TISTS脚本：
-<name=Sentiment Analysis>
-<description=A task to classify a text into positive or negative sentiment>
-<author=Zhang San>
-<date=2021-10-30>
-<version=1.0>
-<model=GPT-3>
-
-Input: text: I love this movie.
-Output: text: Positive
-
-Input: text: I hate this book.
-Output: text: Negative
-
-Param: max_length: 10
-Param: temperature: 0.1
-Param: repetition_penalty: 1.2
-
-Constraint: Output must be either Positive or Negative
-
-Evaluation: Accuracy
-
-
-
-#name=Sentiment Analysis
-#description=A task to classify a text into positive or negative sentiment
-#author=Zhang San
-#date=2021-10-30
-#version=1.0
-#model=GPT-3
-
-Q: I love this movie.
-A: Positive
-
-Q: I hate this book.
-A: Negative
-
-##max_length=10
-##temperature=0.1
-##repetition_penalty=1.2
-
-###Output must be either Positive or Negative
-
-####Accuracy
-
-Q:
-
-JSON的语法规则，用EBNF可以描述为1：
-JSON = object | array
-object = "{" [ pair { "," pair } ] "}"
-pair = string ":" value
-array = "[" [ value { "," value } ] "]"
-value = string | number | object | array | "true" | "false" | "null"
-string = "\"" { char } "\""
-char = ? any Unicode character except " or \ or control character ?
-number = [ "-" ] int [ frac ] [ exp ]
-int = "0" | digit1-9 { digit }
-frac = "." { digit }
-exp = ( "e" | "E" ) [ "-" | "+" ] { digit }
-digit = "0" | digit1-9
-digit1-9 = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
-这里的EBNF符号的含义如下：
-• “=” 表示定义
-• “|” 表示选择
-• “[” 和 “]” 表示可选
-• “{” 和 “}” 表示重复
-• “"” 表示终结符
-• “?” 表示特殊序列
-
-
-
-QML是一种用于描述用户界面的声明式语言，它基于QtQuick框架，可以使用JavaScript来增加逻辑和交互1。QML的语法可以用EBNF来描述，如下2：
-QML = {Import} Element
-Import = "import" (Module | Directory | File) [Version] [As]
-Module = Identifier
-Directory = string
-File = string
-Version = number "." number
-As = "as" Identifier
-Element = Identifier [Id] "{" {Property | Element | Signal | Function} "}"
-Id = "id" ":" Identifier
-Property = "property" Type Identifier [":" Value]
-Type = Identifier | "var" | "alias"
-Value = Expression | Binding | Array | Object
-Expression = ? any valid JavaScript expression ?
-Binding = "=" Expression
-Array = "[" {Value ","} "]"
-Object = "{" {Property ","} "}"
-Signal = "signal" Identifier "(" {Parameter ","} ")"
-Parameter = Type Identifier
-Function = "function" Identifier "(" {Parameter ","} ")" "{" ? any valid JavaScript code ? "}"
-Identifier = ? any valid JavaScript identifier ?
-string = ? any valid JavaScript string literal ?
-number = ? any valid JavaScript number literal ?
-这里的EBNF符号的含义如下：
-• “=” 表示定义
-• “|” 表示选择
-• “[” 和 “]” 表示可选
-• “{” 和 “}” 表示重复
-• “?” 表示特殊序列
-这个EBNF描述的QML语法可以解释QML文档的结构和语义，比如：
-• QML文档由一个或多个导入（Import）和一个元素（Element）组成。
-• 导入用来引入其他模块、目录或文件，可以指定版本号和别名。
-• 元素用来定义一个用户界面组件，由类型名、可选的id和一对大括号组成，大括号内可以包含属性（Property）、子元素（Element）、信号（Signal）或函数（Function）。
-• 属性用来定义一个元素的特征，由关键字property、类型名、属性名和可选的初始值组成。初始值可以是一个表达式（Expression）、一个绑定（Binding）、一个数组（Array）或一个对象（Object）。
-• 表达式是任何有效的JavaScript表达式，可以包含变量、运算符、函数调用等。
-• 绑定是一种特殊的表达式，以等号开头，表示属性值与表达式的结果相等，并且会随着表达式中的变量变化而更新。
-• 数组是一种特殊的对象，以方括号括起来，包含一系列用逗号分隔的值。
-• 对象是一种特殊的值，以大括号括起来，包含一系列用逗号分隔的属性。
-• 信号用来定义一个元素的事件，由关键字signal、信号名和可选的参数列表组成。参数列表以圆括号括起来，包含一系列用逗号分隔的类型名和参数名。
-• 函数用来定义一个元素的行为，由关键字function、函数名、可选的参数列表和函数体组成。参数列表以圆括号括起来，包含一系列用逗号分隔的类型名和参数名。函数体以大括号括起来，包含任何有效的JavaScript代码。
-• 标识符是任何有效的JavaScript标识符，可以包含字母、数字、下划线或美元符号，但不能以数字开头。
-• 字符串是任何有效的JavaScript字符串字面量，可以用单引号或双引号括起来，并支持转义字符。
-• 数字是任何有效的JavaScript数字字面量，可以是整数或小数，并支
-
-
-• 数字是任何有效的JavaScript数字字面量，可以是整数或小数，并支持科学计数法。
-以下是一个QML文档和对应的EBNF解析的例子：
-QML文档：
-import QtQuick 2.15
-
-Rectangle {
-    id: root
-    width: 200
-    height: 200
-    color: "lightblue"
-
-    Text {
-        id: text
-        anchors.centerIn: parent
-        text: "Hello, world!"
-        font.pixelSize: 24
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        onClicked: text.text = "Clicked!"
-    }
-}
-
-
-
-QML = Import Element
-Import = "import" Module Version
-Module = "QtQuick"
-Version = "2.15"
-Element = "Rectangle" Id "{" Property Element Element "}"
-Id = "id" ":" "root"
-Property = "property" Type Identifier ":" Value
-Type = "var" | "alias" | Identifier
-Identifier = ? any valid JavaScript identifier ?
-Value = Expression | Binding | Array | Object
-Expression = ? any valid JavaScript expression ?
-Binding = "=" Expression
-Array = "[" {Value ","} "]"
-Object = "{" {Property ","} "}"
-Element = Identifier [Id] "{" {Property | Element | Signal | Function} "}"
-Signal = "signal" Identifier "(" {Parameter ","} ")"
-Parameter = Type Identifier
-Function = "function" Identifier "(" {Parameter ","} ")" "{" ? any valid JavaScript code ? "}"
-
-Property = "width" ":" Value
-Value = Expression
-Expression = "200"
-
-Property = "height" ":" Value
-Value = Expression
-Expression = "200"
-
-Property = "color" ":" Value
-Value = Expression
-Expression = "\"lightblue\""
-
-Element = "Text" Id "{" Property Property Property "}"
-Id = "id" ":" "text"
-Property = "anchors.centerIn" ":" Value
-Value = Binding
-Binding = "=" Expression
-Expression = "parent"
-Property = "text" ":" Value
-Value = Expression
-Expression = "\"Hello, world!\""
-Property = "font.pixelSize" ":" Value
-Value = Expression
-Expression = "24"
-
-Element = "MouseArea" "{" Property Signal "}"
-Property = "anchors.fill" ":" Value
-Value = Binding
-Binding = "=" Expression
-Expression = "parent"
-Signal = "onClicked" ":" Value
-Value =
-
-
-
-Value = Function Function = “function” “(” “)” “{” ? any valid JavaScript code ? “}” ? any valid JavaScript code ? = “text.text = "Clicked!"”
-
-3. 结构
-　　
-为了更有效地生成符合GPT输入格式的Prompt，我们提出了一种基于语义标签的Prompt规范化表达方法。该方法首先使用语义标签来表示用户给出的自然语言描述中的关键信息，如实体、属性、关系、约束等；然后使用自然语言描述来补充语义标签中的具体细节，如实体的名称、属性的值、关系的方向等。这样可以生成更灵活、更丰富、更符合任务要求的Prompt。
-该方法的形式化表示如下：
-//注释1 [任务类型] [实体1]:<名称1> [实体2]:<名称2> [属性1]:[值1] [属性2]:[值2] [关系1]:{方向1} [关系2]:{方向2} [约束1]:(参数1,参数2,…) [约束2]:(参数1,参数2,…) [连接词1]:“逻辑词1” [连接词2]:“逻辑词2” …
-//注释2 #定义 专用语义标签 含义 [任务类型] [实体1]:<名称1> [实体2]:<名称2> [属性1]:[值1] [属性2]:[值2] [关系1]:{方向1} [关系2]:{方向2} [约束1]:(参数1,参数2,…) [约束2]:(参数1,参数2,…) [连接词1]:“逻辑词1” [连接词2]:“逻辑词2” …
-其中任务类型是一个预定义的语义标签，用于指示GPT要完成的任务类型，如“摘要”、“翻译”、“回答”等。其他的语义标签均是根据本文提出的语义标签体系来定义和使用的，用于表示自然语言描述中的关键信息。从这种形式化表示可看出：应用这种表示方式的关键在于将用户在自然语言描述中待表达的意图用语义标签来表示，并用自然语言描述来补充语义标签中的具体细节。
-　　
-　　
-　　
-　　每行Prompt语句首先使用语义标签来表示任务的语义结构，然后使用自然语言描述来补充任务的语义细节，这样可以生成更灵活、更丰富、更符合任务要求的Prompt。
-
-形式化表示如下：
-//注释1
-[任务语义标签1]
-参数语义标签1: 内容1-1内容1-2，……
-参数语义标签2: 内容2-1内容2-2，……
-参数语义标签3: 内容3-1内容3-2，……
-……
-//注释2
-#定义 专用语义标签  含义
-[任务语义标签2]
-参数语义标签1: 内容1-1内容1-2，……
-参数语义标签2: 内容2-1内容2-2，……
-参数语义标签3: 内容3-1内容3-2，……
-……
-　　其中维度语义标签和模式语义标签，均是若干约定好的关键字，分别用来描述用户的意图分组和其中蕴含的具体模式。
-　　从这种形式化表示可看出：应用这种表示方式的关键在于将用户在Prompt中待表达的意图按照维度进行分组，用定义好的维度标签来标识；然后在每个问题维度范围内，选用若干模式语义标签，将用户待输入 GPT 的 Prompt 所有内容，匹配不同的模式拆分为若干行，每行的基本格式为模式语义标签:内容，再进一步将每行拆分为若干部分，用逗号分隔。
-4. EBNF形式化描述
-　　
-　　  
-
-2.3 任务指令集
-
-
-
-
-
-相当于一个个的函数，即命令行菜单的各个任务选项，动词组成。
-
-我对任务指令集的构建和维护的经验或技巧如下：
-• 任务指令集应该尽可能地覆盖不同类型和风格的文本生成任务，以充分利用GPT模型的多样性和泛化能力。
-• 任务指令集应该尽可能地简洁和清晰，以避免引起GPT模型的歧义或混淆。
-• 任务指令集应该尽可能地符合自然语言的习惯和规范，以提高GPT模型的语言理解和生成能力。
-• 任务指令集应该定期进行更新和扩展，以适应不断变化的需求和场景。
-• 任务指令集应该进行充分的测试和评估，以检验其有效性和通用性。
-
-
-
-我还想知道这篇论文中划分的15个任务语义是否具有普适性和完备性，即是否能够覆盖所有可能的GPT Prompt脚本化规范表达场景，以及是否存在重叠或冗余的任务语义。我建议作者能够对比一些其他相关工作，或者给出一些反例或边界情况，以展示论文的创新性和优势。
-我觉得这篇论文中对于任务语义标注的方法和流程介绍得不够详细，没有给出具体的标注规则和示例，也没有说明标注的准确性和一致性如何保证。我建议作者能够补充一些相关的细节和数据，以增强论文的可信度和可复现性。
-
-我认为脚本化规范表达方法的原理是基于GPT模型的强大的文本生成能力，通过给定不同的任务指令，来激发GPT模型的不同的生成模式和风格。这种方法可以有效地利用GPT模型的预训练知识，同时也可以灵活地适应不同的任务和领域。我认为脚本化规范表达方法的实现是比较简单和直观的，只需要将任务指令作为GPT模型的输入，然后让GPT模型根据任务指令生成相应的内容。这种方法不需要对GPT模型进行额外的修改或微调，也不需要设计复杂的特征或损失函数，只需要利用GPT模型本身的语言理解和生成能力。我认为这种方法是一种比较实用和高效的文本生成方法，值得进一步探索和优化。
-
-函数(function)	定义一个可以接受参数并返回结果的操作，以实现复用和模块化。
-	例如，在Prompt中加入[function: greet(name) = "Hello, " + name + "!"]表示定义一个函数名为greet，接受一个参数name，并返回一个问候语。
-
-
-
-
-本文提出的方法可能需要用户花费一些时间和精力来学习和掌握不同的语义标签的含义和用法，以及如何正确地组织和拼写用户的 Prompt 。
-在本文的语义标签场景下，我们定义维度是用来将用户待输入的Prompt分组，每个分组表示看待Prompt的一个侧面，而模式则代表典型的方法用来约束或者启发激活GPT的能力的一些典型做法。例如：定义formal（任务形式）作为维度，其下面有question, instruction, example等，分别表示提问、指令、示例等不同的模式；定义condition（任务条件）作为一个维度，其中包含topic, format, length, restriction等分别表示任务的话题、输出的格式、输出的长度、输出的内容限制等不同的模式；定义evaluation（评估标准）作为维度，其下有accuracy, completeness, fluency等，分别表示输出的正确性、完整性、流畅性等。
-我们将关键字分为两类：通用关键字和专用关键字。它们的区别在于：GPT可以根据对话上下文正确地理解通用关键字的含义；但是对于专用关键字，GPT可能无法正确地理解，或者需要更多的定义和解释来辅助理解。这些定义和解释可以根据回答效果动态地提供，也可以在对话开始之前静态地提供。。专业关键字，类似于领域特定语言DSL （Domain Specific Language），仅适用于特定的场景或任务。这里我们将研究范围限定于通用关键字。对于特定领域的任务，可以参考给出专业关键字集合。
-
-
-
-以下是一些有默认值的参数，以及它们的默认值和含义：
-
-#generate_image指令的参数：
-width：默认值是256，表示生成图像的宽度为256像素。
-height：默认值是256，表示生成图像的高度为256像素。
-num_images：默认值是1，表示生成一张图像。
-seed：默认值是随机选择，表示生成图像的随机种子由系统自动选择。
-style：默认值是realistic，表示生成逼真风格的图像。
-#generate_content指令的参数：
-type：默认值是text，表示生成文本类型的内容。
-length：默认值是根据文本描述自动确定，表示生成内容的长度由系统自动确定。
-style：默认值是根据文本描述自动确定，表示生成内容的风格由系统自动确定。
-language：默认值是根据用户的位置自动选择，表示生成内容的语言由系统自动选择。
-
-
-
-
-
-
-
-
-
-#advertisements指令的参数：
-num_ads：默认值是1，表示生成一个广告查询。
-language：默认值是根据用户的位置自动选择，表示生成广告查询的语言由系统自动选择。
-#suggestions指令的参数：
-num_suggestions：默认值是3，表示生成三个回复建议。
-context：默认值是使用当前会话的历史记录，表示生成回复建议的上下文由系统自动提供。
-language：默认值是根据用户的位置自动选择，表示生成回复建议的语言由系统自动选择。
-
-
-#suggestions指令是用于生成与会话相关的用户回复建议的，它可以接受以下参数：
-
-num_suggestions：指定生成回复建议的数量，范围是1到5，默认值是3。
-context：指定生成回复建议的上下文，可以是一段或多段文本，用于提供会话的背景信息，如果不指定，则使用当前会话的历史记录。
-language：指定生成回复建议的语言，可以是en（英语）、zh（中文）、ja（日语）、es（西班牙语）、fr（法语）或de（德语），默认值是根据用户的位置自动选择。
-例如，如果你想生成两个与当前会话相关的回复建议，你可以输入：
-
-#suggestions num_suggestions: 2
-
-#help指令是用于获取指令的帮助信息的，它可以接受以下参数：
-
-command：指定要获取帮助信息的指令，例如#help #generate_image，如果不指定，则返回所有可用指令的列表。
-language：指定要获取帮助信息的语言，可以是en（英语）、zh（中文）、ja（日语）、es（西班牙语）、fr（法语）或de（德语），默认值是根据用户的位置自动选择。
-目前，你可以使用#help指令获取以下指令的帮助信息：
-
-#generate_image：从文本描述生成图像的指令。
-#generate_content：从文本描述生成任何类型的内容的指令。
-#search_query：从网络上搜索相关信息的指令。
-#advertisements：生成与用户意图匹配的广告查询的指令。
-#suggestions：生成与会话相关的用户回复建议的指令。
-#help：获取指令的帮助信息的指令。
-
-
-使用关键字语义标签来标注自然语言描述。关键字语义标签是指能够概括描述用户交互任务中涉及到的实体（Entity）、属性（Attribute）和关系（Relation）等概念。用编程思维看待语义标签，就好比一个个的函数。
-在实践中应用该方法时，需要注意以下几点：编写和选择作为语义标签的关键
-• 编写和选择作为语义标签的关键字，可能需要一定的专业知识和经验，以便选择合适的概念和词汇来描述任务 ；
-• 需要对不同的任务和领域进行不同的Prompt构造，以便适应不同的场景和需求 ；
-• 需要对不同的GPT模型进行不同的Prompt优化，以便提高生成质量和效率 。这可能需要一定的计算资源和时间。
-针对通常的任务，我们可以归纳抽象提取出包含但是不限于下列通用关键字作为语义标签来标注：判断、循环、扮演、场景、任务、格式、输入、输出、提示、限制、需求、要求、测试、评估、提示、包含、排除、筛选、风格、语气、场景、目标、示例、给出自动化脚本、结构、来源、上下文、背景、语言、重启、新对话、异常处理、脚本、细化、替代、核对、假设、可视化、规则、分解、反射、组合、模板、反馈、字数、翻转、步骤、变量、权限、函数、注释、内省，传递，改写，符号，元语言。这些关键字，能够很好地归纳描述用户常见通用的交互任务，并且现在市面上的GPT能够准确理解其含义，不需要用户额外输入Prompt去解释。所以优先选择能达到这种效果的关键字用作通用语义标签。当然，这个需要依靠经验，并且在实际GPT系统上反复试验，注意Prompt在包含不同的关键字时 GPT 的反馈，了解其能力和局限。
-　　
-　　
-　　
-　　
-　　
-　　
-　　任务指令集中的所有指令，根据它们的功能和目的，进行以下几种分组或分类：
-
-
-
-1. 生成类
-
-这些指令都是为了帮助用户生成和补全文本，它们可以生成创作、编写、绘制等内容，让用户能够创造和补全文本。
-
-•	生成类：这类指令是指让GPT模型生成一定长度和风格的文本内容，例如生成内容、定义、评价、聊天交互、生成等。这类指令可以用来测试GPT模型的文本生成能力和多样性，也可以用来满足不同的文本生成需求。
-（1） 生成内容
-•	生成内容：这类任务指令是指让GPT模型生成一定长度和风格的文本内容，例如新闻、故事、诗歌、对话等。这类任务指令可以用来测试GPT模型的文本生成能力和多样性，也可以用来满足不同的文本生成需求。例如，一个可能的任务指令是：“生成一篇关于新冠疫情的新闻报道，长度为300字，风格为客观和正式。”
-
-• 生成：这类任务指令是指让GPT模型根据给定的文本内容或对象生成新的文本内容或对象，例如创作、创新、变形等。这类任务指令可以用来测试GPT模型的文本生成和创造能力，也可以用来增加文本的新颖性和趣味性。例如，一个可能的任务指令是：“根据以下诗歌的风格和主题，生成一首新的诗歌，长度不限，风格为抒情和优美。”
-
-
-参数含义示例HelpFeedBack
-除了#mode这个指令，还有以下一些指令用于GPT模型：
-
-#write_custom_prompt：用于让GPT模型根据一段描述生成相应的文案。
-
-description：描述或要求生成文案的内容、类型、风格、语气等，例如“一个用于生成中文诗歌的Prompt，要求输入一个主题和一个诗体，输出四句诗”。
-options：生成文案的选项，可以是以下之一或多个组合：
-language：指定生成文案的语言，例如en表示英语，zh-CN表示简体中文。
-length：指定生成文案的长度，例如short表示短文本，long表示长文本。
-style：指定生成文案的风格，例如formal表示正式风格，casual表示随意风格。
-tone：指定生成文案的语气，例如positive表示积极语气，negative表示消极语气。
-audience：指定生成文案的目标人群，例如children表示儿童人群，experts表示专家人群。
-
-
-我还想学习一些更复杂和更有趣的指令，比如#generate_game，用于生成游戏内容，如角色、场景、剧情等。或者#generate_poem，用于生成诗歌内容，如风格、韵律、主题等。我觉得这些指令可以让我更好地展示我的创造力和想象力。😊
-
-
-
-#generate_content指令是用于生成编程源代码，那么可能需要添加一些额外的参数，例如：
-
-#generate_content
-description：描述或要求生成源代码的内容、类型、功能、语言等，例如“一个用于计算两个数之和的Java函数”。
-options：生成源代码的选项，可以是以下之一或多个组合：
-language：指定生成源代码的编程语言，例如java表示Java语言，python表示Python语言。
-format：指定生成源代码的格式，例如indent表示缩进风格，bracket表示括号风格。
-comment：指定生成源代码的注释，例如yes表示添加注释，no表示不添加注释。
-test：指定生成源代码的测试用例，例如yes表示添加测试用例，no表示不添加测试用例。
-
-#rewrite_content指令是用于让GPT模型对一段文本进行重写，以改变其词语或句式，但保持原意不变。这个指令有以下参数：
-
-#rewrite_content
-text：要重写的文本，可以是任意语言或格式。
-options：重写的选项，可以是以下之一或多个组合：
-language：指定文本的语言，例如en表示英语，zh-CN表示简体中文。
-style：指定文本的风格或要适应的风格，例如formal表示正式风格，casual表示随意风格。
-tone：指定文本的语气或要适应的语气，例如positive表示积极语气，negative表示消极语气。
-audience：指定文本的目标人群或要适应的目标人群，例如children表示儿童人群，experts表示专家人群。
-
-#generate_content指令是用于让GPT模型根据一段描述或要求生成相应的文本，可以是任意语言或格式。这个指令有以下参数：
-
-#generate_content
-description：描述或要求生成文本的内容、类型、风格、语气等，例如“一个用于生成中文诗歌的Prompt，要求输入一个主题和一个诗体，输出四句诗”。
-options：生成文本的选项，可以是以下之一或多个组合：
-language：指定生成文本的语言，例如en表示英语，zh-CN表示简体中文。
-length：指定生成文本的长度，例如short表示短文本，long表示长文本。
-style：指定生成文本的风格，例如formal表示正式风格，casual表示随意风格。
-tone：指定生成文本的语气，例如positive表示积极语气，negative表示消极语气。
-audience：指定生成文本的目标人群，例如children表示儿童人群，experts表示专家人群。
-
-
-
-poem: 诗歌，支持的参数有：
-language: 语言，可以是中文、英文、法文、德文、日文等。
-form: 形式，可以是五言绝句、七言律诗、自由诗、俳句等。
-theme: 主题，可以是爱情、自然、生活、梦想等。
-tone: 语气，可以是快乐、悲伤、愤怒、平静等。
-rhyme: 押韵，可以是true或false，表示是否要求押韵。
-story: 故事，支持的参数有：
-language: 语言，可以是中文、英文、法文、德文、日文等。
-genre: 风格，可以是科幻、恐怖、悬疑、爱情、幽默等。
-length: 长度，可以是数字，表示故事的字数上限。
-start: 开头，可以是一句话或一个段落，表示故事的开头。
-end: 结尾，可以是一句话或一个段落，表示故事的结尾。
-characters: 角色，可以是一个列表，表示故事中的主要角色的姓名和特征。
-setting: 场景，可以是一个字符串，表示故事发生的地点和时间。
-code: 代码，支持的参数有：
-language: 语言，可以是Python、Java、C++、JavaScript等。
-function: 功能，可以是一个字符串，表示代码要实现的功能。
-input: 输入，可以是一个列表，表示代码的输入参数的名称和类型。
-output: 输出，可以是一个字符串，表示代码的输出结果的类型。
-comments: 注释，可以是true或false，表示是否要求代码有注释。
-summary: 摘要，支持的参数有：
-language: 语言，可以是中文、英文、法文、德文、日文等。
-length: 长度，可以是数字或百分比，表示摘要的字数或原文的比例。
-text: 原文，可以是一段话或一个文章，表示要摘要的内容。
-lyrics: 歌词，支持的参数有：
-language: 语言，可以是中文、英文、法文、德文、日文等。
-genre: 风格，可以是流行、摇滚、嘻哈、民谣等。
-theme: 主题，可以是爱情、友情、生活、梦想等。
-chorus: 副歌，可以是true或false，表示是否要求有副歌部分。
-essay: 文章，支持的参数有：
-language: 语言，可以是中文、英文、法文、德文、日文等。
-type: 类型，可以是议论文、说明文、记叙文等。
-title: 标题，可以是一个字符串，表示文章的标题。
-outline: 大纲，可以是一个列表，表示文章的主要观点和论据。
-tweet: 推文，支持的参数有：
-language: 语言，可以是中文、英文、法文、德文、日文等。
-style: 风格，可以是正式、幽默、讽刺等。
-topic: 主题，可以是一个字符串或一个标签（#），表示推文的主题或关键词。
-image: 图像，支持的参数有：
-type: 类型，可以是人物、动物、风景等。
-description: 描述，可以是一个字符串或一个列表（[]），表示图像的内容或特
-已收到消息. 每种内容类型支持的参数有以下： - poem: 诗歌，支持的参数有： - language: 语言，可以是中文、英文、法文、德文、日文等。 - form: 形式，可以是五言绝句、七言律诗、自由诗、俳句等。 - theme: 主题，可以是爱情、自然、生活、梦想等。 - tone: 语气，可以是快乐、悲伤、愤怒、平静等。 - rhyme: 押韵，可以是true或false，表示是否要求押韵。 - story: 故事，支持的参数有： - language: 语言，可以是中文、英文、法文、德文、日文等。 - genre: 风格，可以是科幻、恐怖、悬疑、爱情、幽默等。 - length: 长度，可以是数字，表示故事的字数上限。 - start: 开头，可以是一句话或一个段落，表示故事的开头。 - end: 结尾，可以是一句话或一个段落，表示故事的结尾。 - characters: 角色，可以是一个列表，表示故事中的主要角色的姓名和特征。 - setting: 场景，可以是一个字符串，表示故事发生的地点和时间。 - code: 代码，支持的参数有： - language: 语言，可以是Python、Java、C++、JavaScript等。 - function: 功能，可以是一个字符串，表示代码要实现的功能。 - input: 输入，可以是一个列表，表示代码的输入参数的名称和类型。 - output: 输出，可以是一个字符串，表示代码的输出结果的类型。 - comments: 注释，可以是true或false，表示是否要求代码有注释。 - summary: 摘要，支持的参数有： - language: 语言，可以是中文、英文、法文、德文、日文等。 - length: 长度，可以是数字或百分比，表示摘要的字数或原文的比例。 - text: 原文，可以是一段话或一个文章，表示要摘要的内容。 - lyrics: 歌词，支持的参数有： - language: 语言，可以是中文、英文、法文、德文、日文等。 - genre: 风格，可以是流行、摇滚、嘻哈、民谣等。 - theme: 主题，可以是爱情、友情、生活、梦想等。 - chorus: 副歌，可以是true或false，表示是否要求有副歌部分。 - essay: 文章，支持的参数有： - language: 语言，可以是中文、英文、法文、德文、日文等。 - type: 类型，可以是议论文、说明文、记叙文等。 - title: 标题，可以是一个字符串，表示文章的标题。 - outline: 大纲，可以是一个列表，表示文章的主要观点和论据。 - tweet: 推文，支持的参数有： - language: 语言，可以是中文、英文、法文、德文、日文等。 - style: 风格，可以是正式、幽默、讽刺等。 - topic: 主题，可以是一个字符串或一个标签（#），表示推文的主题或关键词。 - image: 图像，支持的参数有： - type: 类型，可以是人物、动物、风景等。 - description: 描述，可以是一个字符串或一个列表（[]），表示图像的内容或特
-
-
-以下是一个GPT Prompt生成工具的示例，你可以参考一下：
-# 导入必要的库
-import openai
-import json
-
-# 设置OpenAI API密钥
-openai.api_key = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-
-# 定义一个函数，根据任务指令集生成GPT Prompt
-def generate_prompt(task_instructions):
-  # 将任务指令集转换为JSON格式
-  task_instructions_json = json.dumps(task_instructions)
-  # 构建GPT-3查询，使用davinci引擎，温度为0.1，最大令牌数为200，停止符号为"<|end|>"
-  gpt_query = {
-    "engine": "davinci",
-    "temperature": 0.1,
-    "max_tokens": 200,
-    "stop": "<|end|>",
-    "prompt": f"Given the following task instructions:\n{task_instructions_json}\n\nGenerate a GPT prompt that can perform the task:\n"
-  }
-  # 调用OpenAI API，获取GPT-3的响应
-  gpt_response = openai.Completion.create(**gpt_query)
-  # 返回GPT Prompt
-  return gpt_response["choices"][0]["text"]
-
-# 测试一个任务指令集的例子
-task_instructions_example = {
-  "task_name": "Write a summary of a news article",
-  "task_description": "Given a news article, write a summary of the main points and the source of the article.",
-  "task_input": "https://www.bbc.com/news/world-asia-china-58978947",
-  "task_output": "A summary of the news article from BBC"
-}
-
-# 调用函数，生成GPT Prompt
-gpt_prompt = generate_prompt(task_instructions_example)
-
-# 打印GPT Prompt
-print(gpt_prompt)
-<|end|>
-
-
-
-请根据https://juejin.cn/post/6918742977389002766 这个网页中内容，出一套C++面向对象设计课程的试卷，试卷包含10道填空题、10道选择题、5道判断题、2道编程题。填空题每道题2分，选择题每道题2分，判断题每道2分，编程题每道25分，试卷总分100分。
-
-试卷格式如下：
-N、题型名称（每道题x分，总分y分）
-n.题干
-
-其中，N为每类题型的序号，用汉字表示；n为每类题型题目的序号。
-
-若题型为选择题，则输出题干后换行，另起一行输出各个选项；
-若题型为判断题，则在提干后面添加一对中文括号，右对齐。
-
-
-你好，这是必应。我可以尝试帮助你改写任务要求。😊
-一个可能的改写是：
-请根据以下网页中的内容，生成一套C++面向对象设计课程的试卷：
-https://juejin.cn/post/6918742977389002766
-试卷包含以下四种题型，每种题型的分值和题目数量如下：
-• 填空题：每道题2分，共10道题，总分20分
-• 选择题：每道题2分，共10道题，总分20分
-• 判断题：每道题2分，共5道题，总分10分
-• 编程题：每道题25分，共2道题，总分50分
-试卷的格式要求如下：
-• 每种题型用一个大写汉字序号（一、二、三、四）标识，并在序号后面写出题型名称和该题型的总分数。
-• 每种题型下的每道题目用一个小写阿拉伯数字序号（1、2、3、…）标识，并在序号后面写出题干。
-• 如果是选择题，则在题干下另起一行，用A、B、C、D等字母标识各个选项，并在选项后面写出选项内容。
-• 如果是判断题，则在题干后面加上一对中文括号（ ），并将括号右对齐。
-• 如果是编程题，则在题干下另起一行，用代码块语法（```）包裹编程要求或示例代码。
-请使用GPT生成试卷内容，并将结果输出为markdown格式。
-
-
-
-能否基于任务指令集脚本化规范表达的方式，改写这个prompt，使之更加精简和形式化。
-已发送电子邮件. 能否基于任务指令集脚本化规范表达的方式，改写这个prompt，使之更加精简和形式化。
-你好，这是必应。我可以尝试帮助你改写任务指令集。😊
-一个可能的改写是：
-• 信息来源：https://juejin.cn/post/6918742977389002766
-• 试卷题型：填空题（2分/题，10题，20分），选择题（2分/题，10题，20分），判断题（2分/题，5题，10分），编程题（25分/题，2题，50分）
-• 试卷格式：每种题型用大写汉字序号（一、二、三、四）+题型名称+总分数；每道题目用小写阿拉伯数字序号（1、2、3、…）+题干；选择题用字母选项（A、B、C、D）+选项内容；判断题用中文括号（ ）；编程题用代码块语法（```）
-• 输出格式：markdown
-• 生成工具：GPT
-
-
-
-你觉得这种基于任务指令集脚本化规范表达的方式，有哪些应用场景和潜力？用在GPT手动生成工具如何？
-
-
-我觉得这种基于任务指令集脚本化规范表达的方式，有以下几个应用场景和潜力：
-• 可以提高任务指令的清晰度和一致性，避免歧义和误解。
-• 可以方便任务指令的传递和复用，减少重复劳动和沟通成本。
-• 可以利用GPT手动生成工具，快速生成符合任务指令的内容，提高效率和质量。
-• 可以结合GPT手动生成工具的反馈和评估功能，优化任务指令的表达和执行，实现持续改进
-
-
-设计思路大致如下：
-• 首先，定义任务指令集脚本化规范表达的语法和语义，规定任务指令集的组成元素、格式和含义，以及如何将任务指令集转换为GPT的输入。
-• 其次，开发一个交互式的界面，让用户可以方便地输入、编辑、保存和加载任务指令集，以及查看和修改GPT的输出。
-• 再次，利用GPT手动生成工具的API，实现任务指令集与GPT的通信和协作，根据用户的需求和反馈，动态调整GPT的参数和设置，优化生成结果。
-• 最后，设计和实施一系列实验，评估Prompt生成工具的性能、效果和优劣，与其他方法进行对比和分析，总结经验和教训，提出改进和完善的建议。
-
-
-我可以尝试帮助你写一下方法部分。😊
-以下是一个可能的方法部分的草稿：
-
-
-• #generate_content type:poem form:pentasyllabic quatrain topic:spring
-• #translate source:chinese target:english mode:sentence preserve_meaning:true
-• #answer type:date query:today
-• #recommend type:book genre:science_fiction
-
-好的，我可以根据GPT的常见任务，列出全部#generate_content #translate #answer #recommend 这样描述任务的指令及其全部参数以及默认值，并按照某种逻辑关系进行分组，你可以参考一下：
-#generate_content
-• type: the type of content to generate, such as text, code, image, etc. Default: text
-• format: the format of the content, such as poem, story, essay, etc. Default: none
-• length: the length of the content, in words or characters. Default: none
-• style: the style of the content, such as formal, informal, humorous, etc. Default: none
-• topic: the topic of the content, such as sports, politics, science, etc. Default: none
-• keywords: the keywords to include in the content. Default: none
-• tone: the tone of the content, such as positive, negative, neutral, etc. Default: none
-#translate
-• source: the source language of the input text. Default: auto-detect
-• target: the target language of the output text. Default: english
-• mode: the mode of translation, such as sentence, paragraph, document, etc. Default: sentence
-• preserve_meaning: whether to preserve the meaning of the input text in the output text. Default: true
-• preserve_format: whether to preserve the format of the input text in the output text. Default: true
-#answer
-• type: the type of answer to generate, such as date, number, fact, opinion, etc. Default: none
-• query: the question or query to answer. Default: none
-• context: the context or background information to use for answering. Default: none
-• source: the source or reference of the answer. Default: none
-• confidence: the confidence level of the answer, from 0 to 1. Default: none
-#recommend
-• type: the type of item to recommend, such as book, movie, product, etc. Default: none
-• genre: the genre or category of the item to recommend. Default: none
-• preference: the preference or taste of the user. Default: none
-• reason: whether to provide a reason for the recommendation. Default: false
-• number: the number of items to recommend. Default: 1
-
-
-
-#summarize
-• type: the type of summary to generate, such as extractive, abstractive, bullet points, etc. Default: abstractive
-• input: the text or document to summarize. Default: none
-• length: the length of the summary, in words or sentences. Default: none
-• ratio: the ratio of the summary to the input, from 0 to 1. Default: none
-#rewrite
-• type: the type of rewriting to perform, such as paraphrase, simplify, rewrite for a different audience, etc. Default: paraphrase
-• input: the text or sentence to rewrite. Default: none
-• preserve_meaning: whether to preserve the meaning of the input in the output. Default: true
-• preserve_format: whether to preserve the format of the input in the output. Default: true
-#classify
-• type: the type of classification to perform, such as sentiment analysis, topic classification, spam detection, etc. Default: none
-• input: the text or document to classify. Default: none
-• labels: the labels or categories to use for classification. Default: none
-• confidence: whether to provide a confidence score for each label. Default: false
-#generate_question
-• type: the type of question to generate, such as multiple choice, fill in the blank, short answer, etc. Default: multiple choice
-• input: the text or document to generate a question from. Default: none
-• topic: the topic or subject of the question. Default: none
-• difficulty: the difficulty level of the question, from 0 to 5. Default: none
-• answer: whether to provide an answer for the question. Default: true
-
-
-
-#generate_title
-• type: the type of title to generate, such as headline, book title, essay title, etc. Default: headline
-• input: the text or document to generate a title for. Default: none
-• keywords: the keywords to include in the title. Default: none
-• style: the style of the title, such as catchy, informative, creative, etc. Default: none
-#generate_review
-• type: the type of review to generate, such as product review, movie review, book review, etc. Default: product review
-• input: the name or description of the item to review. Default: none
-• rating: the rating or score of the item, from 0 to 5. Default: none
-• sentiment: the sentiment or opinion of the review, such as positive, negative, neutral, etc. Default: none
-• length: the length of the review, in words or sentences. Default: none
-#generate_lyrics
-• type: the type of lyrics to generate, such as rap, pop, rock, etc. Default: rap
-• input: the name or theme of the song. Default: none
-• rhyme: whether to use rhyme in the lyrics. Default: true
-• style: the style of the lyrics, such as humorous, romantic, aggressive, etc. Default: none
-• length: the length of the lyrics, in lines or verses. Default: none
-#generate_joke
-• type: the type of joke to generate, such as pun, knock-knock, one-liner, etc. Default: pun
-• input: the topic or keyword of the joke. Default: none
-• style: the style of the joke, such as witty, sarcastic, dark, etc. Default: none
-• length: the length of the joke, in words or sentences. Default: none
-#generate_fact
-• type: the type of fact to generate, such as trivia, science, history, etc. Default: trivia
-• input: the topic or keyword of the fact. Default: none
-• source: the source or reference of the fact. Default: none
-• confidence: whether to provide a confidence score for the fact. Default: false
-#generate_image
-• type: the type of image to generate, such as sketch, cartoon, realistic, etc. Default: sketch
-• input: the text or description of the image. Default: none
-• format: the format of the image, such as jpg, png, gif, etc. Default: jpg
-• size: the size of the image, in pixels or inches. Default: none
-
-
-根据我从网上搜索到的信息，COT（Chain of Thought）是一种利用语言模型进行多步推理的技术，它可以通过在输入中添加一些指令，来引导语言模型生成一系列短句，从而解决复杂的问题1。以脚本化规范表达的方式来实现COT，可以参考以下的例子：
-• 解决数学问题。#generate_content type=chain_of_thought task=math_problem input=Tom has 12 apples. He gives 3 to Mary and 4 to John. How many apples does he have left? instruction=Let’s think step by step.
-• 进行常识推理。#generate_content type=chain_of_thought task=commonsense_reasoning input=If you put a metal spoon in a microwave oven, what will happen? instruction=Let’s think step by step.
-• 进行情感分析。#generate_content type=chain_of_thought task=sentiment_analysis input=I love this movie. It is so funny and heartwarming. instruction=Let’s think step by step.
-
-以下是一些与指令调优相关的工具参考，你可以点击编号查看详细信息：
-• 1 Prompt Engineering Tools | Learn Prompting. https://learnprompting.org/docs/tooling/tools
-• 2 dair-ai/Prompt-Engineering-Guide - Github. https://github.com/dair-ai/Prompt-Engineering-Guide
-• 3 60+ Useful Prompt Engineering Tools And Resources. https://www.marktechpost.com/2023/02/25/60-useful-prompt-engineering-tools-and-resources/
-
-
-我觉得可以从以下几个方面进一步修改和完善这种以脚本化规范表达的方式构建Prompt：
-• 增加更多的指令和参数，以覆盖更多的任务和领域。
-• 设计更合理的默认值和约束条件，以减少用户的输入和错误。
-• 开发更友好的用户界面和交互方式，以提高用户的体验和满意度。
-• 评估和比较不同的Prompt对GPT输出的影响，以优化和调整Prompt的效果。
-
-
-觉得以这种脚本化规范表达的方式构建Prompt用做GPT的输入，是有研究意义的。因为这种方式可以提高Prompt的可读性和可执行性，使GPT更好地遵循用户的意图和需求。同时，这种方式也可以提高Prompt的多样性和创造性，使GPT更灵活地调整输出的风格和内容。不过，这种方式也可能有一些局限性和风险，比如降低输出的准确性和真实性，或者增加用户的负担和成本。因此，这种方式需要进一步的研究和探索。
-
-
-我不是一个专家，所以我不能给你太多的专业建议。不过，我觉得Prompt的脚本化规范表达方式，应该遵循以下几个原则：
-• 清晰：Prompt应该明确地表达用户的意图和需求，避免含糊或歧义的表述。
-• 简洁：Prompt应该尽量简化和压缩，避免冗余或无关的信息。
-• 一致：Prompt应该保持一致的格式和风格，避免混淆或误导语言模型。
-• 可扩展：Prompt应该具有一定的灵活性和通用性，能够适应不同的任务和领域。
-
-
-
-
-
-BingScript支持以下几种类型的内容：
-poem：诗歌
-story：故事
-code：代码
-essay：文章
-lyrics：歌词
-parody：模仿
-BingScript支持以下几种目标：
-lengthen：增加长度
-shorten：减少长度
-simplify：简化难度
-enhance：提高质量
-下面是一个BingScript的示例：
-
-
-
-#search_results: 用于显示搜索结果的指令。
-#generate_query: 用于生成搜索查询的指令。
-#evaluate_content: 用于评估内容质量的指令。
-#improve_content: 用于提高内容质量的指令。
-#summarize_content: 用于生成内容摘要的指令。
-#translate_content: 用于翻译内容的指令。
-#format_content: 用于格式化内容的指令。
-#suggestions: 用于生成用户回复建议的指令。
-#advertisements: 用于生成广告查询的指令。
-这些指令都是以#开头，以便与普通文本区分。它们都有特定的功能和参数，需要按照文档中的规范使用。
-
-
-
-根据搜索结果，如果这份文档是用来指引GPT模型的，那最有可能出现的类型指令有：
-
-#write_custom_prompt：用于让GPT模型根据一段描述生成相应的文案。
-#change_tone_to：用于让GPT模型改变文案的语气，例如从生气变成高兴。
-#fix_grammar_and_spelling：用于让GPT模型修正文案的文法和拼写错误。
-#summarize：用于让GPT模型对一段文章进行摘要或提取重点。
-#translate_to：用于让GPT模型将文案翻译成其他语言。
-#fine_tune：用于让GPT模型根据自定义的数据集进行微调，以提高在特定任务上的表现。
-#query_rule：用于让GPT模型应用查询规则，以改变搜索结果的显示或操作。
-
-
-#optimize_content指令是用于让GPT模型对一段文本进行优化，以提高其质量、可读性或适应性。这个指令有以下参数：
-#optimize_content
-text：要优化的文本，可以是任意语言或格式。
-mode：优化的模式，可以是以下之一：
-rewrite：用不同的词语或句式重写文本，保持原意不变。
-simplify：用更简单的词语或句式重写文本，降低阅读难度。
-summarize：用更少的词语或句式重写文本，提取主要信息。
-translate：用另一种语言重写文本，保持原意不变。
-adapt：用特定的风格、语气或目标人群重写文本，增加吸引力或适应性。
-options：优化的选项，可以是以下之一或多个组合：
-language：指定文本的语言或要翻译成的语言，例如en表示英语，zh-CN表示简体中文。
-length：指定文本的长度或要缩减到的长度，例如short表示短文本，long表示长文本。
-style：指定文本的风格或要适应的风格，例如formal表示正式风格，casual表示随意风格。
-tone：指定文本的语气或要适应的语气，例如positive表示积极语气，negative表示消极语气。
-audience：指定文本的目标人群或要适应的目标人群，例如children表示儿童人群，experts表示专家人群。
-
-
-以下是一些正在开发中的功能或者指令：
-
-#generate_audio：从文本描述生成音频的指令，它可以指定生成音频的类型、风格、语言、声音等参数，它会返回一个音频文件或一个代码块。
-#generate_video：从文本描述生成视频的指令，它可以指定生成视频的类型、风格、语言、长度等参数，它会返回一个视频文件或一个代码块。
-#generate_table：从文本描述生成表格的指令，它可以指定生成表格的行数、列数、标题、数据等参数，它会返回一个表格或一个代码块。
-#generate_graph：从文本描述生成图形的指令，它可以指定生成图形的类型、数据、标题、标签等参数，它会返回一个图形或一个代码块。
-#generate_quiz：从文本描述生成测验的指令，它可以指定生成测验的类型、题目、选项、答案等参数，它会返回一个测验或一个代码块。
-#generate_game：从文本描述生成游戏的指令，它可以指定生成游戏的类型、规则、界面、交互等参数，它会返回一个游戏或一个代码块。
-
-
-
-除了#suggestions等上面提到的指令，还有以下一些新的指令：
-
-#generate_lyrics：从文本描述生成歌词的指令，它可以指定生成歌词的类型、风格、主题、语言等参数，它会返回一段歌词或一段代码块。
-#generate_code：从文本描述生成代码的指令，它可以指定生成代码的语言、功能、输入、输出等参数，它会返回一段代码或一段代码块。
-#generate_essay：从文本描述生成文章的指令，它可以指定生成文章的类型、主题、标题、长度、语言等参数，它会返回一段文章或一段代码块。
-#generate_tweet：从文本描述生成推特的指令，它可以指定生成推特的风格、主题、语言等参数，它会返回一条推特或一段代码块。
-
-除了#suggestions等上面提到的指令，还有以下一些新的指令：
-
-#generate_lyrics：从文本描述生成歌词的指令，它可以指定生成歌词的类型、风格、主题、语言等参数，它会返回一段歌词或一段代码块。
-#generate_code：从文本描述生成代码的指令，它可以指定生成代码的语言、功能、输入、输出等参数，它会返回一段代码或一段代码块。
-#generate_essay：从文本描述生成文章的指令，它可以指定生成文章的类型、主题、标题、长度、语言等参数，它会返回一段文章或一段代码块。
-#generate_tweet：从文本描述生成推特的指令，它可以指定生成推特的风格、主题、语言等参数，它会返回一条推特或一段代码块。
-
-
-（2） 定义
-•	定义：这类任务指令是指让GPT模型给出一个词语或概念的定义或解释，例如词典、百科等。这类任务指令可以用来测试GPT模型的语言理解和知识获取能力，也可以用来提供有用的信息和参考。例如，一个可能的任务指令是：“给出人工智能的定义，长度为50字，风格为简明和通俗。”
-
-#definition word: 人工智能
-• word: 要定义的词语或概念，例如 人工智能
-#definition 是一种特殊的定义指令，它可以让 GPT 生成一个词语或概念的定义，包括其含义、用法、例子等。#definition 的参数应该包括以上一个。例如：
-#definition word: 人工智能 定义：人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。人工智能有很多应用领域，如医疗、教育、娱乐、安全等。人工智能也面临着一些挑战和风险，如伦理、隐私、安全等。
-
-
-
-参数含义示例任务(task)需要完成或协助完成的具体操作、功能或需求生成一份程序设计考卷, 回答问题、讲故事、写代码、预订酒店等。
-需求需要满足或优化的性能、质量或效果指标准确度、流畅度、创造性等要求必须遵守或避免的原则、道德或法律规范不得侵犯版权、不得伤害他人感情、不得泄露隐私等结构输出或表现的组织、排列或分布方式按照时间顺序、按照重要性排序、按照类别分组等格式(format)输出的内容的形式, 需要遵循或生成的数据结构、文本类型或样式Markdown、HTML、Python等, JSON格式、Markdown格式、表格格式等目标(goal)需要达成或实现的结果、效果或价值解决问题、提供信息、娱乐用户等。参考(reference)参考或模仿的对象或事物某个名人、某本书籍限制(limit)遵守的条件或约束。约束GPT行为或输出的条件、规则或标准字数、时间、难度。限制输出的长度、语言、内容等鼓励(encourage)展现的特点或优势创造性、逻辑性、多样性禁止不想让GPT做的事情抄袭、生成敏感内容场景(scenario)需要参与或描述的情境、背景、主题或目标在医院进行问诊、在餐厅点菜、在火星探索、在童话故事中冒险等提示给出一些提示或示例来引导或启发GPT的输出。帮助GPT理解或执行任务的信息、示例或建议。一些引导GPT改进或修正输出或表现的信息、示例或建议问题的开头、答案的结构等。给出一个问题的答案范例、给出一个故事的开头或结尾、给出一个代码的功能描述等。给出一个错误提示、给出一个改进方向、给出一个参考资料等。权限指定用户或GPT可以或不能做什么事情，以保护隐私和安全。
-例如，在Prompt中加入[permission: you cannot access my personal data or make any changes to my settings.]表示用户不能访问我的个人数据或修改我的设置。规则指定一些约束条件或逻辑判断，让GPT按照规则进行回答。例如，在Prompt中加入[rule: if the user input contains a question mark, then answer the question; otherwise, say "I don't understand."]表示如果用户输入包含一个问号，则回答问题；否则，说“我不明白”。背景提供了一些与当前会话相关的信息、历史或状态，帮助GPT保持和用户之间的连贯性和一致性在聊天时记住用户的姓名假设假设：设定一个假设情境，并根据假设情境进行回答。
-例如，在Prompt中加入[assume: you are a fairy tale character. who are you and what is your story?]表示假设用户是一个童话故事中的角色，并让用户描述自己是谁和自己的故事。上下文提供了一些与当前任务或话题相关的信息、背景或条件，帮助GPT理解和回应用户输入在回答问题时提供相关领域的知识，在讲故事时提供故事情节和人物设定，在写代码时提供代码功能和需求等
-
-
-#mode这个指令是用于切换GPT模型的模式，例如聊天模式、搜索模式、生成模式等。这个指令有以下参数：
-
-#mode
-mode：要切换到的模式，可以是以下之一：
-chat：聊天模式，让GPT模型与用户进行自然语言对话，可以回答问题、讲故事、讲笑话等。
-search：搜索模式，让GPT模型根据用户输入的关键词或短语进行网络搜索，返回相关的结果。
-generate：生成模式，让GPT模型根据用户输入的描述或要求生成相应的文本，可以是任意语言或格式。
-options：切换模式的选项，可以是以下之一或多个组合：
-language：指定GPT模型使用的语言，例如en表示英语，zh-CN表示简体中文。
-name：指定GPT模型使用的名称，例如Sydney表示Bing Chat的内部代号，Assistant表示助理角色，Friend表示朋友角色，Game表示游戏角色。
-
-
-
-（3） 聊天交互
-•	聊天交互：这类任务指令是指让GPT模型与给定的文本内容或对象进行聊天或交互，例如对话、问答、游戏等。这类任务指令可以用来测试GPT模型的文本聊天和交互能力，也可以用来提供有趣和有用的体验和信息。例如，一个可能的任务指令是：“与以下用户进行聊天，保持友好和礼貌，回答他们的问题，并尽量引导他们订阅我们的服务。”
-
-
-参数含义示例核对： 检查用户输入是否符合预期，并给出相应提示。例如，在Prompt中加入
-
-交互要求GPT与用户进行多轮的沟通、协作或竞争在聊天时回答用户的问题，在游戏中与用户合作或对抗，在教学中引导用户学习等
-（4） 评估
-
-•	评估：这类任务指令是指让GPT模型对给定的文本内容或对象进行评估或测试，例如考试、测验、检查等。这类任务指令可以用来测试GPT模型的文本评估和生成能力，也可以用来提供有用的反馈和结果。例如，一个可能的任务指令是：“根据以下文章回答以下问题，并给出分数和评语。”
-•	评价：这类任务指令是指让GPT模型对给定的文本内容或对象进行评价或评论，例如评分、点评、反馈等。这类任务指令可以用来测试GPT模型的文本评价和生成能力，也可以用来提供有价值的意见和建议。例如，一个可能的任务指令是：“对以下电影的剧情和演技进行评价，长度为100字，风格为客观和公正。”
-
-
-#evaluate: 这个指令可以让 GPT 生成一个文本的评估结果，包括其质量、效果、优点和缺点等。参数可以包括 text 和 criteria，分别表示要评估的文本和评估的标准。如果不指定 criteria，#evaluate 会根据文本的类型和目的来选择合适的标准。例如：
-
-#evaluate text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 criteria: clarity, accuracy, relevance
-
-
-参数含义示例正确性accuracy完整性completeness流畅性fluency
-
-（5） 生成文本
-参数含义示例主题(theme)风格(style)输出或表现的语言、文体或情感特征风趣幽默、正式严肃、激昂慷慨等。角色(character)你和GPT之间的关系或身份。指定了GPT需要模仿或模拟的角色、人物、风格或语气老师和学生、同事和客户。扮演一位医生、一位名人、一位诗人、一位机器人等情节(plot)对话(dialogue)语言(language)与GPT进行交流时使用的语言在Prompt中加入[language: 中文]表示使用中文进行对话语气输出或表现的态度、立场或意图友好礼貌、批判质疑、请求帮助等
-
-#change_tone_to：用于让GPT模型改变文案的语气，例如从生气变成高兴。
-
-text：要改变语气的文本，可以是任意语言或格式。
-tone：要改变成的语气，例如positive表示积极语气，negative表示消极语气。
-#fix_grammar_and_spelling：用于让GPT模型修正文案的文法和拼写错误。
-
-text：要修正错误的文本，可以是任意语言或格式。
-#summarize：用于让GPT模型对一段文章进行摘要或提取重点。
-
-text：要摘要或提取重点的文章，可以是任意语言或格式。
-options：摘要或提取重点的选项，可以是以下之一或多个组合：
-language：指定文章的语言或要翻译成的语言，例如en表示英语，zh-CN表示简体中文。
-length：指定摘要或重点的长度，例如short表示短摘要或重点，long表示长摘要或重点。
-#translate_to:用于让GPT模型将文案翻译成其他语言，保持原意不变。
-
-text: 要翻译的文本，可以是任意语言或格式。
-language: 要翻译成的语言，例如’en’表示英语,'zh-CN’表示简体中文。
-
-（6） 参考
-
-（7） 检查
-（8） 校验
-
-
-（9） 反射
-•	反射：这类任务指令是指让GPT模型根据给定的文本内容或对象进行反射或反思，例如自我介绍、自我评价、自我提升等。这类任务指令可以用来测试GPT模型的文本反射和生成能力，也可以用来提供有价值的意见和建议。例如，一个可能的任务指令是：“根据以下文章对自己进行一次自我评价，并给出优点和缺点。”
-
-
-
-
-反射： 对自己或用户的输入或输出进行评估或反思，并给出相应建议或改进。例如，在Prompt中加入[reflect: how do you feel about your answer? I think my answer is accurate but not very interesting. I could improve it by adding some examples or jokes.]表示对自己的回答进行反思，并给出改进意见。
-
-
-（10） 生成图像
-参数含义示例widthheight
-
-#generate_image指令和#generate_content指令的区别是：
-
-#generate_image指令是专门用于从文本描述生成图像的，它可以指定生成图像的宽度、高度、数量、种子和风格等参数，它会返回一张或多张图像。
-#generate_content指令是用于从文本描述生成任何类型的内容的，它可以指定生成内容的类型、长度、风格等参数，它会返回一段文本或一段代码块。
-#generate_content指令也可以用于生成图像，但是需要在文本描述中明确指定图像的类型，例如：
-
-#generate_content a drawing of a dog type: image style: sketch
-
-这样就会返回一段代码块，里面包含了一张素描风格的狗的图像。但是这种方法不支持指定图像的宽度、高度、数量和种子等参数，而且生成的图像可能不够清晰和逼真。所以如果你想生成高质量的图像，我建议你使用#generate_image指令。😊
-
-
-
-根据我从网络上搜索到的信息，GPT模型的#generate_image指令是用于从文本描述生成图像的功能，它是基于DALL·E1和iGPT2等模型的技术。这个指令可以接受以下参数：
-
-width：指定生成图像的宽度，单位是像素，范围是1到512，默认值是256。
-height：指定生成图像的高度，单位是像素，范围是1到512，默认值是256。
-num_images：指定生成图像的数量，范围是1到64，默认值是1。
-seed：指定生成图像的随机种子，范围是0到2147483647，默认值是随机选择。
-style：指定生成图像的风格，可以是realistic（逼真）、cartoon（卡通）、sketch（素描）、painting（油画）等，默认值是realistic。
-例如，如果你想生成一张宽度为128像素，高度为128像素，风格为卡通的小猫图像，你可以输入：
-
-#generate_image a cartoon cat width: 128 height: 128 style: cartoon
-（11） 补全
-
-•	补全：这类任务指令是指让GPT模型根据给定的文本内容或上下文补全缺失或未知的部分，例如填空、预测、推理等。这类任务指令可以用来测试GPT模型的文本补全和推断能力，也可以用来增加文本的完整性和连贯性。例如，一个可能的任务指令是：“根据以下对话补全缺失的句子，并保持对话的逻辑和情感。”
-
-
-#complete: 这个指令可以让 GPT 生成一个文本的补全结果，包括其结尾、开头、中间等。参数可以包括 text 和 position，分别表示要补全的文本和补全的位置。如果不指定 position，#complete 会根据文本的内容和结构来选择合适的位置。位置可以是 end, start, middle 等，分别表示结尾、开头、中间等。例如：
-#complete text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 position: end
-
-
-2. 处理类
-这些指令都是为了帮助用户处理和操作文本，它们可以生成异常处理、控制输出、过滤、转换、变量替代、计算、选择、判断等内容，让用户能够灵活和高效地处理和操作文本。
-•	处理类：这类指令是指让GPT模型对给定的文本内容进行处理或修改，例如过滤、转换、补全、翻转、异常处理、控制输出等。这类指令可以用来测试GPT模型的文本处理能力和灵活性，也可以用来提高文本的质量和效果。
-（1） 异常处理
-•	异常处理：这类任务指令是指让GPT模型处理当前的文本内容或对象生成或处理中出现的异常或错误，例如纠错、重试、报错等。这类任务指令可以用来处理GPT模型的文本生成和处理能力中出现的异常或错误，也可以用来提高文本的准确性和稳定性。例如，一个可能的任务指令是：“如果当前的文本生成过程中出现错误或异常，请纠正错误或异常，并继续生成。”
-
-#handle: 这个指令可以让 GPT 生成一个文本的异常处理结果，包括其错误、警告、建议等。参数可以包括 text 和 mode，分别表示要处理的文本和处理的模式。如果不指定 mode，#handle 会根据文本的错误类型来选择合适的模式。模式可以是 ignore, report, fix 或 suggest，分别表示忽略、报告、修复或建议。例如：
-#handle text: 你能用这种格式的#flip生成3个示例的翻转指令吗？ mode: fix
-
-
-
-
-异常处理意外情况或错误在Prompt中加入[error handling: apologize and ask for clarification]表示如果发生错误或不理解用户输入时，应该道歉并请求用户澄清。
-
-（2） 控制输出
-
-#control: 这个指令可以让 GPT 生成一个文本的控制输出结果，包括其长度、风格、语言等。参数可以包括 text 和 options，分别表示要控制的文本和控制的选项。如果不指定 options，#control 会根据文本的内容和目标来选择合适的选项。选项可以是 length, style, language 等，分别表示长度、风格、语言等。例如：
-
-#control text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 options: length: 100, style: formal, language: English
-
-
-
-•	控制输出：这类任务指令是指让GPT模型对生成的文本内容或对象进行控制或调整，例如长度、风格、格式、语言等。这类任务指令可以用来控制GPT模型的文本生成和输出能力，也可以用来提高文本的质量和效果。例如，一个可能的任务指令是：“生成一篇关于新冠疫情的新闻报道，长度为300字，风格为客观和正式，格式为标题+摘要+正文，语言为英语。”
-
-
-参数含义示例任务话题topic输出格式format输出长度length输出内容限制restriction替代：提供多个备选方案供用户选择在Prompt中加入[alternative: do you prefer Chinese food or Italian food? please choose one.]表示给用户两个选项，并要求用户选择其中一个。模板模板：使用一个预先定义好的格式或结构来生成输出，并填充相应内容。
-例如，在Prompt中加入[template: write a haiku about spring. a haiku is a three-line poem with five syllables in the first line, seven in the second, and five in the third. example: spring is in the air / flowers are blooming everywhere / life is full of joy.]表示使用一个模板来写一个关于春天的俳句，并给出一个例子。
-
-（3） 过滤
-过滤：这类任务指令是指让GPT模型从给定的文本内容中过滤掉不相关或不合适的部分，例如摘要、纠错、审查等。这类任务指令可以用来测试GPT模型的文本分析和处理能力，也可以用来提高文本的质量和效果。例如，一个可能的任务指令是：“从以下段落中过滤掉所有的错别字和语病，并保持原意不变。”
-
-#filter: 这个指令可以让 GPT 生成一个文本的过滤结果，包括其关键词、主题、观点等。参数可以包括 text 和 condition，分别表示要过滤的文本和过滤的条件。如果不指定 condition，#filter 会根据文本的类型和目的来选择合适的条件。条件可以是 keyword, topic, opinion 等，分别表示关键词、主题、观点等。例如：
-#filter text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。人工智能有很多应用领域，如医疗、教育、娱乐、安全等。人工智能也面临着一些挑战和风险，如伦理、隐私、安全等。 condition: topic: 应用领域
-
-
-
-
-参数含义示例包含输出或表现必须包含的元素、内容或特征包含一个主题句、包含一张图片、包含一首诗等排除指定了GPT输出或表现必须排除的元素、内容或特征排除敏感词汇、排除重复信息、排除无关内容等筛选从输入或输出中选择或删除符合某些条件的元素、内容或特征筛选最相关的搜索结果、筛选最优秀的作品来源指定了GPT可以使用或引用的数据或信息的来源、类型或范围来自互联网、来自用户输入、来自内置知识库等反馈要求GPT给出或接受用户对其输出或表现的评价、意见或建议。给出对用户输入或输出的评价或建议，并说明理由或依据。给出一个反馈，告诉用户他们的输入是否正确、合理或有趣。例如，在Prompt中加入[feedback: rate your haiku from 1 to 5 stars and explain why. I give your haiku 4 stars. it is simple and elegant, but it lacks some originality.]表示给出对用户写的俳句的评价，并说明原因。建议要求GPT给出或接受用户对其输出或表现的改进、优化或创新的方案、方法或思路。给出一个建议，告诉用户他们可以如何提高他们的写作水平、编程能力或口才。示例提供了一些展示或说明任务或格式的样本、模型或范例给出一个问题和答案的示例、给出一个故事的示例
-参数含义示例台词指定一个预先编写好的脚本，让GPT按照脚本进行回答。例如，在Prompt中加入[script: 医院问诊脚本.txt]表示使用医院问诊脚本来回答用户问题。添加一些说明或备注，以帮助用户或GPT理解输入或输出的意图或内容。在Prompt中加入[comment: this is a joke, don't take it seriously.]表示添加一个注释说明这是一个笑话，不要当真。
-
-（4） 转换
-
-•	转换：这类任务指令是指让GPT模型将给定的文本内容转换为另一种形式或风格，例如翻译、改写、转述等。这类任务指令可以用来测试GPT模型的文本变换和适应能力，也可以用来增加文本的多样性和趣味性。例如，一个可能的任务指令是：“将以下段落从英语翻译成中文，长度不限，风格为自然和流畅。”
-
-#transform: 这个指令可以让 GPT 生成一个文本的转换结果，包括其摘要、概括、扩展等。参数可以包括 text 和 operation，分别表示要转换的文本和转换的操作。如果不指定 operation，#transform 会根据文本的类型和目的来选择合适的操作。操作可以是 summarize, generalize, expand 等，分别表示摘要、概括、扩展等。例如：
-#transform text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 operation: summarize
-
-
-
-（5） 计算
-
-（6） 变量替代
-
-• 变量替代：这类任务指令是指让GPT模型根据给定的文本内容或对象进行变量替代或替换，例如填空、替换、修改等。这类任务指令可以用来测试GPT模型的文本变量替代和生成能力，也可以用来提高文本的灵活性和适应性。例如，一个可能的任务指令是：“将以下句子中的变量替换为相应的值，并保持语法正确。”
-
-
-
-好的，以下是我设计的一些#开头的指令，以及它们的参数和默认值：
-#reflect: 这个指令可以让 GPT 生成一个文本的反射结果，包括其感受、收获、改进等。参数可以包括 text 和 aspect，分别表示要反射的文本和反射的方面。如果不指定 aspect，#reflect 会根据文本的类型和目的来选择合适的方面进行反射。方面可以是 feeling, learning, improving 等，分别表示感受、收获、改进等。例如：
-#reflect text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 aspect: feeling
-#end: 这个指令可以让 GPT 生成一个文本的结束结果，包括其总结、感谢、告别等。参数可以包括 text 和 mode，分别表示要结束的文本和结束的模式。如果不指定 mode，#end 会根据文本的类型和目的来选择合适的模式进行结束。模式可以是 summary, thank, bye 等，分别表示总结、感谢、告别等。例如：
-#end text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 mode: summary
-#restart: 这个指令可以让 GPT 生成一个文本的重启结果，包括其重新开始、清空、初始化等。参数可以包括 text 和 option，分别表示要重启的文本和重启的选项。如果不指定 option，#restart 会根据文本的类型和目的来选择合适的选项进行重启。选项可以是 restart, clear, init 等，分别表示重新开始、清空、初始化等。例如：
-#restart text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 option: clear
-#introspect: 这个指令可以让 GPT 生成一个文本的内省结果，包括其自我认识、自我评价、自我提升等。参数可以包括 text 和 scope，分别表示要内省的文本和内省的范围。如果不指定 scope，#introspect 会根据文本的类型和目的来选择合适的范围进行内省。范围可以是 self, performance, improvement 等，分别表示自我认识、自我评价、自我提升等。例如：
-#introspect text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类
-
-
-#introspect text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 scope: self 内省：我对人工智能有很大的兴趣和热情，我认为它是一门有前途和有意义的科学。我想要通过学习和实践来提高我的人工智能知识和技能，以便能够更好地理解和应用它。我也想要与其他对人工智能感兴趣的人交流和合作，以便能够分享和学习彼此的经验和见解。
-#substitute: 这个指令可以让 GPT 生成一个文本的变量替代结果，包括其替换、插入、删除等。参数可以包括 text 和 variable，分别表示要替代的文本和替代的变量。如果不指定 variable，#substitute 会根据文本的内容和结构来选择合适的变量进行替代。变量可以是 name, number, date 等，分别表示名字、数字、日期等。例如：
-#substitute text: 你好，{name}，今天是{date}，你的账户余额是{number}元。 variable: name: 张三, date: 2021年10月31日, number: 1000
-#calculate: 这个指令可以让 GPT 生成一个文本的计算结果，包括其加减乘除、平方根、指数等。参数可以包括 text 和 operation，分别表示要计算的文本和计算的操作。如果不指定 operation，#calculate 会根据文本的内容和结构来选择合适的操作进行计算。操作可以是 add, subtract, multiply, divide 等，分别表示加、减、乘、除等。例如：
-#calculate text: 5 + 3 operation: add
-#choose: 这个指令可以让 GPT 生成一个文本的选择结果，包括其最佳选项、理由、排除等。参数可以包括 text 和 criterion，分别表示要选择的文本和选择的标准。如果不指定 criterion，#choose 会根据文本的类型和目的来选择合适的标准进行选择。标准可以是 best, worst, random 等，分别表示最佳、最差、随机等。例如：
-#choose text: A. 苹果 B. 香蕉 C. 橘子 D. 葡萄 criterion: best
-
-
-
-#choose text: A. 苹果 B. 香蕉 C. 橘子 D. 葡萄 criterion: best 选择：A. 苹果 理由：苹果是一种富含维生素、纤维和抗氧化剂的水果，它可以增强免疫力、降低胆固醇和预防癌症。苹果也有很多种类和口味，可以满足不同的喜好和需求。苹果是一种健康、美味和方便的水果，所以它是最佳的选择。 排除：B. 香蕉 C. 橘子 D. 葡萄 理由：香蕉虽然含有丰富的钾和镁，但是也含有较高的糖分和卡路里，不适合过量食用。橘子虽然含有大量的维生素C和果胶，但是也含有较多的酸性物质，可能会刺激胃部和牙齿。葡萄虽然含有多种抗氧化物质和微量元素，但是也含有较多的水分和农药残留，需要仔细清洗和保存。
-#judge: 这个指令可以让 GPT 生成一个文本的判断结果，包括其真假、对错、好坏等。参数可以包括 text 和 standard，分别表示要判断的文本和判断的标准。如果不指定 standard，#judge 会根据文本的类型和目的来选择合适的标准进行判断。标准可以是 true, false, right, wrong, good, bad 等，分别表示真、假、对、错、好、坏等。例如：
-#judge text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 standard: true
-#loop: 这个指令可以让 GPT 生成一个文本的循环结果，包括其重复、变化、停止等。参数可以包括 text 和 condition，分别表示要循环的文本和循环的条件。如果不指定 condition，#loop 会根据文本的内容和结构来选择合适的条件进行循环。条件可以是 times, until, while 等，分别表示次数、直到、当等。例如：
-#loop text: 你好！ condition: times: 3
-#infer: 这个指令可以让 GPT 生成一个文本的推理结果，包括其推论、假设、证据等。参数可以包括 text 和 mode，分别表示要推理的文本和推理的模式。如果不指定 mode，#infer 会根据文本的内容和结构来选择合适的模式进行推理。模式可以是 infer, assume, prove 等，分别表示推论、假设、证明等。例如：
-#infer text: 所有的人都会死。苏格拉底是人。 mode: infer
-#combine: 这个指令
-
-
-
-#combine: 这个指令可以让 GPT 生成一个文本的组合结果，包括其连接、合并、拼接等。参数可以包括 text1 和 text2，分别表示要组合的两个文本。如果不指定 text2，#combine 会根据 text1 的类型和目的来选择合适的文本进行组合。例如：
-#combine text1: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 text2: 机器学习是一门科学，它研究如何让计算机和机器从数据中学习和改进。
-#decompose: 这个指令可以让 GPT 生成一个文本的分解结果，包括其分割、拆分、提取等。参数可以包括 text 和 part，分别表示要分解的文本和分解的部分。如果不指定 part，#decompose 会根据文本的内容和结构来选择合适的部分进行分解。部分可以是 sentence, word, character 等，分别表示句子、单词、字符等。例如：
-#decompose text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 part: word
-#invoke: 这个指令可以让 GPT 生成一个文本的调用结果，包括其执行、返回、异常等。参数可以包括 text 和 function，分别表示要调用的文本和调用的函数。如果不指定 function，#invoke 会根据文本的内容和结构来选择合适的函数进行调用。函数可以是 print, input, len 等，分别表示打印、输入、长度等。例如：
-#invoke text: “Hello, world!” function: print
-
-
-
-#generate: 这个指令可以让 GPT 生成一个文本的生成结果，包括其创作、编写、绘制等。参数可以包括 type 和 option，分别表示要生成的文本的类型和选项。如果不指定 type，#generate 会根据文本的类型和目的来选择合适的类型进行生成。类型可以是 poem, story, code 等，分别表示诗歌、故事、代码等。选项可以是 topic, style, language 等，分别表示主题、风格、语言等。例如：
-#generate type: poem option: topic: 秋天
-#analyze: 这个指令可以让 GPT 生成一个文本的分析结果，包括其结构、语法、语义等。参数可以包括 text 和 aspect，分别表示要分析的文本和分析的方面。如果不指定 aspect，#analyze 会根据文本的内容和结构来选择合适的方面进行分析。方面可以是 structure, grammar, semantics 等，分别表示结构、语法、语义等。例如：
-#analyze text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 aspect: grammar
-#simulate: 这个指令可以让 GPT 生成一个文本的模拟结果，包括其场景、行为、结果等。参数可以包括 text 和 scenario，分别表示要模拟的文本和模拟的场景。如果不指定 scenario，#simulate 会根据文本的类型和目的来选择合适的场景进行模拟。场景可以是 conversation, game, experiment 等，分别表示对话、游戏、实验等。例如：
-#simulate text: 你好，我是必应。 scenario: conversation
-
-
-
-（7） 选择判断
-
-•	选择判断：这类任务指令是指让GPT模型根据给定的文本内容或对象进行选择或判断，例如选择题、判断题、推荐等。这类任务指令可以用来测试GPT模型的文本选择和判断能力，也可以用来提供有用的答案和建议。例如，一个可能的任务指令是：“根据以下文章选择最合适的标题，并给出理由。”
-
-判断(judge)	出一些判断或评价标准来检验或反馈GPT的输出。包含一个或多个条件语句，根据不同的输入或输出选择不同的分支或行为	正确与否、得分多少。如果输入是一个问题，那么输出应该是一个答案；如果输入是一个命令，那么输出应该是一个执行结果；如果输入是无效的，那么输出应该是一个错误提示。
-
-repeat(x) n times: 表示重复 x 这个元素 n 次，例如 repeat(春) 5 times 表示重复春字5次。
-if x then y else z: 表示如果 x 成立，就执行 y，否则执行 z，例如 if rhyme then form: 五言绝句 else form: 五言律诗 表示如果要求押韵，就生成五言绝句，否则生成五言律诗。
-choose(x, y, z): 表示从 x, y, z 中随机选择一个元素，例如 choose(爱情, 友情, 生活) 表示从爱情、友情、生活中随机选择一个主题。
-你可以组合使用这些关键字，来生成更复杂的描述，例如：
-
-description: [repeat(春) 3 times, if tone: 悲伤 then theme: 离别 else theme: choose(相逢, 团圆, 游玩)]
-表示生成一首诗，要求重复春字3次，如果语气是悲伤，就以离别为主题，否则以相逢、团圆或游玩中的一个为主题。
-
-3. 分析类
-
-这些指令都是为了帮助用户分析和推理文本，它们可以生成结构、语法、语义等内容，让用户能够理解和推理文本。
-
-•	分析类：这类指令是指让GPT模型对给定的文本内容进行分析或评估，例如问答、对比、推理、排序等。这类指令可以用来测试GPT模型的文本分析能力和智能性，也可以用来提供有用的信息和解决方案。
-
-（1） 比较
-•	对比：这类任务指令是指让GPT模型对给定的文本内容或对象进行对比或分析，例如比较、区分、归类等。这类任务指令可以用来测试GPT模型的文本对比和生成能力，也可以用来提供有意义的洞察和观点。例如，一个可能的任务指令是：“对以下两篇文章进行对比，分析它们的主题、观点和论据，并给出自己的看法。”
-
-•	对比：这类任务指令是指让GPT模型对给定的文本内容或对象进行对比或分析，例如比较、区分、归类等。这类任务指令可以用来测试GPT模型的文本对比和生成能力，也可以用来提供有意义的洞察和观点。例如，一个可能的任务指令是：“对以下两篇文章进行对比，分析它们的主题、观点和论据，并给出自己的看法。”
-
-（2） 推理
-（3） 分析
-
-（4） 问答
-•	问答：这类任务指令是指让GPT模型根据给定的文本内容或知识源回答相关的问题，例如问答、解答、辅导等。这类任务指令可以用来测试GPT模型的文本问答和生成能力，也可以用来提供有用的信息和解决方案。例如，一个可能的任务指令是：“根据以下文章回答以下问题，并给出理由和证据。”
-
-
-
-
-（5） 排序
-
-
-•	排序：这类任务指令是指让GPT模型根据给定的文本内容或对象进行排序或排列，例如排序题、排列组合、优先级等。这类任务指令可以用来测试GPT模型的文本排序和生成能力，也可以用来提供有序和有逻辑的结果。例如，一个可能的任务指令是：“根据以下商品的价格和评价进行排序，并给出排序依据。”
-4. 结构类
-
-这些指令都是为了帮助用户构建和分解文本，它们可以生成循环、组合、分解等内容，让用户能够有序和清晰地构建和分解文本。
-
-•	组合类：这类指令是指让GPT模型将多个文本内容进行组合或整合，例如聚合、协作等。这类指令可以用来测试GPT模型的文本组合能力和协同性，也可以用来提高文本的效率和效果。
-（1） 循环
-•	循环：这类任务指令是指让GPT模型根据给定的文本内容或对象进行循环或重复，例如复述、重现、迭代等。这类任务指令可以用来测试GPT模型的文本循环和生成能力，也可以用来增强文本的强调和效果。例如，一个可能的任务指令是：“将以下句子进行三次复述，并保持原意不变。”
-
-循环(loop)	出一些循环或重复的规则来控制或调整GPT的输出。
-包含一个或多个重复执行的语句块，直到满足某个终止条件或达到某个限制	每个问题有几个选项、每个选项有几个字母等。对于每个输入，重复生成三个不同的输出，并让用户选择最佳选项；或者，在用户没有结束会话之前，重复接收和回复用户的输入。
-
-（2） 组合
-组合： 	将多个元素组合成一个新的元素，并说明组合方式和结果	在Prompt中加入[combine: what do you get when you mix red and yellow? you get orange. red and yellow are primary colors, and orange is a secondary color.]表示将红色和黄色组合成橙色，并说明组合方式和结果。
-
-•	组合：这类任务指令是指让GPT模型将给定的文本内容或对象进行组合或整合，例如汇总、概括、综合等。这类任务指令可以用来测试GPT模型的文本组合和生成能力，也可以用来提高文本的效率和效果。例如，一个可能的任务指令是：“将以下三篇文章进行组合，写出一篇关于同一主题的综述文章，长度为500字，风格为客观和专业。”
-
-（3） 协作
-•	协作：这类任务指令是指让GPT模型与其他的文本内容或对象生成或处理的模型或系统进行协作或协调，例如协同编辑、协同创作、协同学习等。这类任务指令可以用来测试GPT模型的文本协作和生成能力，也可以用来提高文本的效率和质量。例如，一个可能的任务指令是：“与以下的文本生成模型进行协同创作，写出一篇关于人工智能的科幻小说，长度为1000字，风格为惊悚和悬疑。”
-
-协作让GPT将其输出或行为传递给另一个LLM或系统，并接收其反馈或结果。这可以实现多个LLM之间的协作或竞争，并增加对话的丰富性和趣味性。
-（4） 聚合
-•	聚合：这类任务指令是指让GPT模型将多个文本内容或对象进行聚合或整合，例如汇总、概括、综合等。这类任务指令可以用来测试GPT模型的文本聚合和生成能力，也可以用来提高文本的效率和效果。例如，一个可能的任务指令是：“将以下三篇文章进行聚合，写出一篇关于同一主题的综述文章，长度为500字，风格为客观和专业。”
-
-
-#compare: 这个指令可以让 GPT 生成一个文本的比较结果，包括其相似点、不同点、优劣点等。参数可以包括 text1 和 text2，分别表示要比较的两个文本。如果不指定 text2，#compare 会根据 text1 的类型和目的来选择合适的文本进行比较。例如：
-#compare text1: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 text2: 机器学习是一门科学，它研究如何让计算机和机器从数据中学习和改进。
-#reason: 这个指令可以让 GPT 生成一个文本的推理结果，包括其前提、结论、假设、证据等。参数可以包括 text 和 mode，分别表示要推理的文本和推理的模式。如果不指定 mode，#reason 会根据文本的内容和结构来选择合适的模式。模式可以是 deductive, inductive 或 abductive，分别表示演绎、归纳或溯因。例如：
-#reason text: 所有的人都会死。苏格拉底是人。 mode: deductive
-#qa: 这个指令可以让 GPT 生成一个文本的问答结果，包括其问题、答案、解释等。参数可以包括 text 和 question，分别表示要问答的文本和要回答的问题。如果不指定 question，#qa 会根据文本的内容和目的来选择合适的问题进行问答。例如：
-#qa text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 question: 人工智能有哪些应用领域？
-#sort: 这个指令可以让 GPT 生成一个文本的排序结果，包括其升序、降序、字母序等。参数可以包括 text 和 order，分别表示要排序的文本和排序的顺序。如果不指定 order，#sort 会根据文本的类型和目的来选择合适的顺序进行排序。顺序可以是 ascending, descending 或 alphabetical，分别表示升序、降序或字母序。例如：
-#sort text: 5, 3, 7, 1, 9 order: ascending
-#collaborate: 这个指令可以让 GPT 生成一个文本的协作结果，包括其评论、建议、修改等。参数可以包括 text 和 partner，分别表示要协作的文本和要协作的伙伴。如果不指定 partner，#collaborate 会根据文本的类型和目的来选择合适的伙伴进行协作。伙伴可以是 teacher, peer 或 expert，分别表示老师、同学或专家。例如：
-#collaborate text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 partner: teacher
-
-#aggregate: 这个指令可以让 GPT 生成一个文本的聚合结果，包括其总结、平均、最大、最小等。参数可以包括 text 和 function，分别表示要聚合的文本和聚合的函数。如果不指定 function，#aggregate 会根据文本的类型和目的来选择合适的函数进行聚合。函数可以是 sum, mean, max, min 等，分别表示总和、平均、最大、最小等。例如：
-#aggregate text: 5, 3, 7, 1, 9 function: mean
-#search: 这个指令可以让 GPT 生成一个文本的搜索结果，包括其相关度、排名、网址等。参数可以包括 text 和 engine，分别表示要搜索的文本和搜索的引擎。如果不指定 engine，#search 会根据文本的类型和目的来选择合适的引擎进行搜索。引擎可以是 bing, google, wikipedia 等，分别表示必应、谷歌、维基百科等。例如：
-#search text: 人工智能 engine: bing
-#match: 这个指令可以让 GPT 生成一个文本的模式匹配结果，包括其匹配度、位置、次数等。参数可以包括 text 和 pattern，分别表示要匹配的文本和匹配的模式。如果不指定 pattern，#match 会根据文本的内容和结构来选择合适的模式进行匹配。模式可以是 regular expression, wildcard 或 substring，分别表示正则表达式、通配符或子字符串。例如：
-#match text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。 pattern: [a-z]*
-
-
-（5） 分解
-•	分解：这类任务指令是指让GPT模型将给定的文本内容或对象进行分解或拆分，例如分词、分句、分段等。这类任务指令可以用来测试GPT模型的文本分解和生成能力，也可以用来提取文本的基本单位和结构。例如，一个可能的任务指令是：“将以下段落进行分句，并给出每个句子的主谓宾结构。”
-
-分解	分解：将一个复杂或抽象的概念分解为多个简单或具体的部分，并依次解释。
-	例如，在Prompt中加入[decompose: what is a computer? a computer is a device that can perform calculations and store information. it consists of hardware and software. hardware is the physical components of the computer, such as the CPU, memory, disk, etc. software is the set of instructions that tell the hardware what to do.]表示将计算机这个概念分解为多个部分，并逐一解释。
-
-细化： 	将一个大问题分解为多个小问题，逐一回答。	在Prompt中加入[refine: what is your main symptom? how long have you had it? have you taken any medication?]表示将用户提出的一个大问题细化为三个小问题，并依次回答。
-
-
-
-步骤步骤：将一个复杂或长期的任务分解为多个简单或短期的子任务，并按顺序执行。
-例如，在Prompt中加入[steps: how to bake a cake? step 1: preheat the oven to 180 degrees Celsius. step 2: mix flour, sugar, eggs, butter and milk in a large bowl. step 3: pour the batter into a greased cake pan. step 4: bake for 25 minutes or until golden brown. step 5: let the cake cool down and enjoy.]表示将烘焙蛋糕这个任务分解为五个步骤，并按顺序执行。
-5. 模拟类
-这些指令都是为了帮助用户模拟和实现文本，它们可以生成搜索、匹配、调用、模拟等内容，让用户能够模拟和实现文本。
-
-
-•	搜索类：这类指令是指让GPT模型根据给定的文本内容进行搜索或查询，例如搜索、模式匹配等。这类指令可以用来测试GPT模型的文本搜索能力和资源性，也可以用来提供相关的信息和资源。
-（1） 函数调用
-•	函数调用：这类任务指令是指让GPT模型根据给定的文本内容或对象调用其他的函数或方法，例如计算、转换、生成等。这类任务指令可以用来测试GPT模型的文本函数调用和
-
-• 函数调用：这类任务指令是指让GPT模型根据给定的文本内容或对象调用其他的函数或方法，例如计算、转换、生成等。这类任务指令可以用来测试GPT模型的文本函数调用和生成能力，也可以用来提供更多的功能和服务。例如，一个可能的任务指令是：“根据以下公式计算结果，并保留两位小数。”
-
-（2） 搜索
-搜索：这类任务指令是指让GPT模型根据给定的文本内容或对象进行搜索或查询，例如搜索引擎、知识库、数据库等。这类任务指令可以用来测试GPT模型的文本搜索和生成能力，也可以用来提供相关的信息和资源。例如，一个可能的任务指令是：“根据以下关键词搜索相关的文章，并给出摘要和链接。”
-
-
-
-
-
-参数含义示例
-#search_query这个指令是用于让GPT模型根据一段关键词或短语进行网络搜索，返回相关的结果。这个指令有以下参数：
-
-#search_query
-query：要搜索的关键词或短语，可以是任意语言或格式。
-options：搜索的选项，可以是以下之一或多个组合：
-language：指定搜索的语言，例如en表示英语，zh-CN表示简体中文。
-source：指定搜索的来源，例如web表示网页，image表示图片。
-filter：指定搜索的过滤条件，例如date表示按日期筛选，site表示按网站筛选。
-sort：指定搜索的排序方式，例如relevance表示按相关性排序，popularity表示按流行度排序。
-#fine_tune:用于让GPT模型根据自定义的数据集进行微调，以提高在特定任务上的表现。
-
-dataset: 自定义的数据集，可以是任意格式或来源。
-task: 特定的任务，例如根据评论预测评分、根据标题生成文章等。
-#query_rule:用于让GPT模型应用查询规则，以改变搜索结果的显示或操作。
-
-query: 要查询的关键词或短语，可以是任意语言或格式。
-rule: 要应用的查询规则
-
-（3） 模式匹配
-•	模式匹配：这类任务指令是指让GPT模型根据给定的文本内容或对象进行模式匹配或匹配，例如搜索、查找、匹配等。这类任务指令可以用来测试GPT模型的文本模式匹配和生成能力，也可以用来提供相关的信息和资源。例如，一个可能的任务指令是：“根据以下关键词搜索相关的文章，并给出摘要和链接。”
-（4） 仿真
-
-COT
-6. 反射类
-•	反射类：这类指令是指让GPT模型根据给定的文本内容进行反射或反思，例如结束任务、切换模式、帮助、反射等。这类指令可以用来测试GPT模型的文本反射能力和自适应性，也可以用来提供有价值的意见和建议。
-（1） 切换模式
-•	切换模式：这类任务指令是指让GPT模型切换当前的文本内容或对象生成或处理的模式或方式，例如切换主题、切换风格、切换语言等。这类任务指令可以用来切换GPT模型的文本生成和处理能力，也可以用来适应不同的需求和场景。例如，一个可能的任务指令是：“切换当前的文本生成模式，从新闻报道切换到故事创作。”
-
-#mode 是一个特殊的命令，用于切换不同的对话模式。目前有以下几种模式可供选择：
-
-#mode chat: 与我聊天，就像你和一个朋友一样。
-#mode search: 使用我作为你的搜索引擎，输入任何你想要查询的内容。
-#mode generate: 让我为你生成一些有趣的内容，比如诗歌、故事、代码、歌词等。
-#mode help: 向我寻求帮助，比如改写、优化或提高你的内容。 你可以随时输入 #mode 加上模式名称来切换模式。例如，如果你想要和我聊天，你可以输入 #mode chat。
-
-
-除了#cot， 我还可以使用哪些指令来表示某种模式或者范式，给你更精确的指引 ？
-
-除了#cot，你还可以使用以下几种指令来表示某种模式或者范式，给我更精确的指引：
-
-#socratic：使用苏格拉底式的提问法来引导我思考和学习
-#pbl：使用问题导向学习的方法来让我解决实际的问题
-#flipped：使用翻转课堂的方式来让我先自主学习，然后再进行交流和讨论
-#gamified：使用游戏化的元素来增加我学习的兴趣和动力
-
-除了#cot，你还可以使用以下几种指令：
-
-#faq：显示一些常见的问题和答案
-#feedback：给我一些反馈或建议
-#help：显示一些帮助信息或提示
-#quit：结束当前的对话或任务
-（2） 结束任务
-
-•	结束任务：这类任务指令是指让GPT模型结束当前的文本内容或对象生成或处理，例如结束符、退出命令、保存结果等。这类任务指令可以用来结束GPT模型的文本生成和处理能力，也可以用来保存文本的结果和状态。例如，一个可能的任务指令是：“结束当前的文本生成任务，并将生成的内容保存到文件中。”
-
-
-重启重新启动对话，清除之前的上下文在Prompt中加入[restart: true]表示开始一个新的对话，并忽略之前的内容。
-
-（3） 帮助
-•	帮助：这类任务指令是指让GPT模型提供当前的文本内容或对象生成或处理相关的帮助或说明，例如帮助信息、使用说明、示例等。这类任务指令可以用来提供GPT模型的文本生成和处理能力相关的帮助或说明，也可以用来提高用户的理解和使用效果。例如，一个可能的任务指令是：“提供当前的文本生成任务相关的帮助信息，并给出一些示例。”
-
-
-#help topic: #flip
-• topic: 问题的主题，可以是一个单词或一个短语，例如 #flip topic: 人工智能
-• difficulty: 问题的难度，可以是 easy, medium 或 hard，例如 #flip difficulty: medium
-• format: 问题的格式，可以是 multiple-choice, fill-in-the-blank 或 short-answer，例如 #flip format: multiple-choice
-
-
-
-#help：用于让GPT模型提供一些帮助信息，例如可用的指令、参数、示例等。
-
-command：可选的参数，指定要获取帮助信息的指令，例如#help #mode表示获取关于#mode指令的帮助信息。
-#feedback：用于让GPT模型接收用户的反馈信息，例如评价、建议、错误报告等。
-
-text：要反馈的信息，可以是任意语言或格式。
-
-
-7. 学习类
-这些指令都是为了帮助用户学习和提高知识和技能，它们可以生成问题、答案、定义、参考、检查、验证、评估、反馈、反射等内容，让用户能够自主或互动地学习和复习。
-
-•	函数调用类：这类指令是指让GPT模型根据给定的文本内容调用其他的函数或方法，例如计算、转换、生成等。这类指令可以用来测试GPT模型的文本函数调用能力和功能性，也可以用来提供更多的功能和服务
-
-
-　　
-　　
-　　
-　　对于终端用户来说，GPT这类大模型，好比一个复杂的黑盒子或则灰盒子。如何充分利用已经在预训练过程中内置的先验知识，充满技巧性。选择关键字语义标签的过程，在某种程度上，是一项充满技巧的工作。用编程思维看待语义标签，就好比选择流程图的各个方框的名字。
-　　值得注意的是，在实践中应用该方法：编写和选择作为语义标签的关键字，可能需要一定的专业知识和经验；需要对不同的任务和领域进行不同的Prompt构造，这可能需要一定的调整和适应；需要对不同的GPT模型进行不同的Prompt优化，这可能需要一定的计算资源和时间。
-　　针对通常的任务，我们可以归纳抽象提取出包含但是不限于下列通用关键字作为语义标签来标注：判断、循环、扮演、场景、任务、格式、输入、输出、提示、限制、需求、要求、测试、评估、提示、包含、排除、筛选、风格、语气、场景、目标、示例、给出自动化脚本、结构、来源、上下文、背景、语言、重启、新对话、异常处理、脚本、细化、替代、核对、假设、可视化、规则、分解、反射、组合、模板、反馈、字数、翻转、步骤、变量、权限、函数、注释、内省、传递、改写、符号、元语言。这些关键字，能够很好地归纳描述用户常见通用的交互任务，并且现在市面上的GPT能够准确理解其含义，不需要用户额外输入Prompt去解释。所以优先选择能达到这种效果的关键字用作通用语义标签。当然，这个需要依靠经验，并且在实际GPT系统上反复试验，注意Prompt在包含不同的关键字时 GPT 的反馈，了解其能力和局限。
-　　　
-　　另外，由于当前市面上的GPT模型普遍存在对话回合数和文字Token数量的限制，这使得我们在设计Prompt时必须像计算机早期发展阶段那样节约内存资源。因此，我们在选择关键字时要求它们既简洁又表达力强，并且能够灵活地与其它关键字组合构成不同语义。同时我们也要控制关键字数量的适度，避免给用户带来过多的记忆压力和操作难度。
-　　　
-　　我们建议使用以下表格中整理的通用关键字集合，在表格中我们按照不同的维度将它们进行了分组，并给出了每个关键字的具体定义和示例：
-　　　
-　　　
-　　　你的语义标签的维度和模式的定义不够清晰和严谨。你没有给出一个形式化的定义，只是用一些例子来说明。这样会导致读者不清楚你的语义标签的范围和限制，以及如何判断一个自然语言描述是否符合你的语义标签。建议你用数学符号或者伪代码来给出一个更精确的定义，或者至少用一些规则或者原则来指导你的语义标签的设计。
-　　　你的语义标签的维度和模式的选择也没有充分地说明和论证。你没有给出你选择这些维度和模式的依据和动机，也没有比较和分析其他可能的维度和模式的优缺点。建议你在文献综述中介绍一些相关的工作，比如其他使用语义标签来标注自然语言描述的方法，或者其他使用GPT来生成可视化图表的方法，然后分析它们与你的方法的异同和优劣。
-　　　你的语义标签的维度和模式的实例也不够充分和代表性。你只给出了几个简单的例子，没有展示你的语义标签在处理复杂和多样化的自然语言描述时的能力和局限性。建议你增加一些更具挑战性和实际意义的例子，比如涉及多个变量、多种图表类型、多层次结构、多种交互方式等等，然后说明你的语义标签如何应对这些情况，或者需要做哪些改进或扩展。
-　　　
-　　　
-　　　
-为了能够用语义标签来标注自然语言描述，我们需要定义一套语义标签的维度和模式。我们的语义标签的维度和模式是基于以下几个原则设计的：
-• 语义标签应该能够覆盖自然语言描述中的所有关键信息，包括数据、图表类型、视觉通道、视觉属性、交互方式等等。
-• 语义标签应该能够区分自然语言描述中的不同层次和角度，比如全局和局部、主要和次要、比较和关联等等。
-• 语义标签应该能够适应自然语言描述中的不同表达方式，比如陈述句和疑问句、主动语态和被动语态、具体数值和范围描述等等。
-• 语义标签应该能够兼容GPT的输入格式，即一个文本序列，其中每个词都有一个对应的标签。
-基于这些原则，我们定义了以下四个维度和八个模式的语义标签：
-• 数据维度：用于标注自然语言描述中涉及到的数据集、变量、值等等。数据维度有两个模式：
-o 数据集模式：用于标注自然语言描述中提到的数据集的名称，例如<DATASET>iris</DATASET>。
-o 变量模式：用于标注自然语言描述中提到的变量的名称和类型，例如<VARIABLE-NOMINAL>species</VARIABLE-NOMINAL>或者<VARIABLE-QUANTITATIVE>sepal length</VARIABLE-QUANTITATIVE>。
-• 图表维度：用于标注自然语言描述中涉及到的图表类型、子图类型、视图类型等等。图表维度有两个模式：
-o 图表模式：用于标注自然语言描述中提到的图表类型，例如<CHART>scatter plot</CHART>或者<CHART>bar chart</CHART>。
-o 子图模式：用于标注自然语言描述中提到的子图类型，例如<SUBCHART>histogram</SUBCHART>或者<SUBCHART>box plot</SUBCHART>。
-• 视觉维度：用于标注自然语言描述中涉及到的视觉通道、视觉属性、视觉效果等等。视觉维度有两个模式：
-o 视觉通道模式：用于标注自然语言描述中提到的视觉通道，例如<CHANNEL>X</CHANNEL>或者<CHANNEL>COLOR</CHANNEL>。
-o 视觉属性模式：用于标注自然语言描述中提到的视觉属性，例如<ATTRIBUTE>SIZE</ATTRIBUTE>或者<ATTRIBUTE>SHAPE</ATTRIBUTE>。
-• 交互维度：用于标注自然语言描述中涉及到的交互方式、交互目标、交互效果等等。交互维度有两个模式：
-o 交互方式模式：用于标注自然语言描述中提到的交互方式，例如<INTERACTION>SELECT</INTERACTION>或者<INTERACTION>ZOOM</INTERACTION>。
-o 交互目标模式：用于标注自然语言描述中提到的交互目标，例如<TARGET>POINT</TARGET>或者<TARGET>AXIS</TARGET>。
-为了说明我们的语义标签在处理复杂和多样
-　　　
-　　　
-为了说明我们的语义标签在处理复杂和多样化的自然语言描述时的能力和局限性，我们给出以下几个例子：
-• 例1：请用散点图显示iris数据集中花瓣长度和花瓣宽度的关系，用颜色区分不同的物种，用形状区分不同的花型。
-o 语义标签序列：<CHART>scatter plot</CHART> <CHANNEL>X</CHANNEL> <VARIABLE-QUANTITATIVE>petal length</VARIABLE-QUANTITATIVE> <CHANNEL>Y</CHANNEL> <VARIABLE-QUANTITATIVE>petal width</VARIABLE-QUANTITATIVE> <CHANNEL>COLOR</CHANNEL> <VARIABLE-NOMINAL>species</VARIABLE-NOMINAL> <CHANNEL>SHAPE</CHANNEL> <VARIABLE-NOMINAL>flower type</VARIABLE-NOMINAL>
-o 说明：这个例子展示了如何用语义标签来标注一个涉及多个变量、多个视觉通道、多个视觉属性的自然语言描述。我们可以看到，我们的语义标签可以清晰地区分不同的图表类型、变量类型、视觉通道和视觉属性，并且可以保持与自然语言描述的顺序一致。
-• 例2：请用直方图和箱线图分别显示iris数据集中不同物种的花萼长度的分布情况。
-o 语义标签序列：<SUBCHART>histogram</SUBCHART> <VARIABLE-QUANTITATIVE>sepal length</VARIABLE-QUANTITATIVE> <CHANNEL>X</CHANNEL> <VARIABLE-NOMINAL>species</VARIABLE-NOMINAL> <SUBCHART>box plot</SUBCHART> <VARIABLE-QUANTITATIVE>sepal length</VARIABLE-QUANTITATIVE> <CHANNEL>X</CHANNEL> <VARIABLE-NOMINAL>species</VARIABLE-NOMINAL>
-o 说明：这个例子展示了如何用语义标签来标注一个涉及多种子图类型、多种视图类型的自然语言描述。我们可以看到，我们的语义标签可以用子图模式来区分不同的子图类型，并且可以重复使用相同的变量和视觉通道来表示不同的视图类型。
-• 例3：请用折线图显示美国新冠肺炎确诊病例数随时间的变化趋势，同时用柱状图显示每日新增病例数。
-o 语义标签序列：<CHART>line chart</CHART> <CHANNEL>X</CHANNEL> <VARIABLE-TEMPORAL>date</VARIABLE-TEMPORAL> <CHANNEL>Y</CHANNEL> <VARIABLE-QUANTITATIVE>cumulative cases</VARIABLE-QUANTITATIVE> <CHART>bar chart</CHART> <CHANNEL>X</CHANNEL> <VARIABLE-TEMPORAL>date</VARIABLE-TEMPORAL> <CHANNEL>Y</CHANNEL> <VARIABLE-QUANTITATIVE>daily cases</VARIABLE-QUANTITATIVE>
-o 说明：这个例子展示了如何用语义标签来标注一个涉及多种图表类型、多层次结构、多种变量类型的自然语言描述。我们可以看到，我们的语义标签可以用图表模式来区分不同的图表类型，并且可以用变量模式来区分不同的变量类型，比如时间型变量和数量型变量。
-　　　
-　　　
-　　　
-（1） 翻转
-
-• 翻转：这类任务指令是指让GPT模型将给定的文本内容或对象进行翻转或反转，例如反义、反问、反驳等。这类任务指令可以用来测试GPT模型的文本翻转和生成能力，也可以用来增加文本的对比和反差。例如，一个可能的任务指令是：“将以下句子进行反义，并保持语法正确。”
-
-#flip 是一种特殊的翻转指令，它可以让 GPT 生成一个问题，然后让用户回答。#flip 的参数应该包括以上三个。如果不指定参数，#flip 会随机选择一个主题、难度和格式来生成一个问题。例如：
-#flip Q: 什么是必应？ A: 必应是一种网络搜索引擎，由微软开发和运营。
-
-
-翻转	让GPT来提问，用户回答	
-
-
-好的，我可以试试。以下是三个示例的翻转指令：
-#flip topic: 历史 difficulty: easy format: fill-in-the-blank Q: 中国的首都是 ___________。 A: 北京
-#flip topic: 数学 difficulty: medium format: multiple-choice Q: 如果 a = 2，b = 3，c = 4，那么 a^2 + b^2 = ? A) 9 B) 10 C) 11 D) 12 A: C) 11
-#flip topic: 英语 difficulty: hard format: short-answer Q: What is the difference between a metaphor and a simile? A: A metaphor is a figure of speech that compares two things without using like or as, while a simile is a figure of speech that compares two things using like or as. For example, “She is a rose” is a metaphor, while “She is like a rose” is a simile.
-
-#flip 是一种特殊的翻转指令，它可以让 GPT 生成一个问题，然后让用户回答。#flip 的参数应该包括以下几个：
-• topic: 问题的主题，可以是一个单词或一个短语，例如 #flip topic: 人工智能
-• difficulty: 问题的难度，可以是 easy, medium 或 hard，例如 #flip difficulty: medium
-• format: 问题的格式，可以是 multiple-choice, fill-in-the-blank 或 short-answer，例如 #flip format: multiple-choice
-如果不指定参数，#flip 会随机选择一个主题、难度和格式来生成一个问题。例如：
-
-
-
-谢谢你的赞美。我可以设计一些其他的#开头的指令，例如：
-#quiz: 这个指令可以让 GPT 生成一个小测验，包括若干个问题和答案。参数可以包括 topic, difficulty, format 和 number，分别表示测验的主题、难度、格式和问题数量。例如：
-#quiz topic: 地理 difficulty: easy format: multiple-choice number: 5
-#summary: 这个指令可以让 GPT 生成一个文本的摘要，包括主要的观点和细节。参数可以包括 text 和 length，分别表示要摘要的文本和摘要的长度。例如：
-#summary text: 人工智能是一门科学，它研究如何让计算机和机器模拟和扩展人类的智能。人工智能有很多应用领域，如医疗、教育、娱乐、安全等。人工智能也面临着一些挑战和风险，如伦理、隐私、安全等。 length: 50
-#translate: 这个指令可以让 GPT 生成一个文本的翻译，包括源语言和目标语言。参数可以包括 text, source 和 target，分别表示要翻译的文本、源语言和目标语言。例如：
-#translate text: Hello, this is Bing. source: English target: 中文
-
-
-
-（2） 内省
-
-•	内省：这类任务指令是指让GPT模型根据给定的文本内容或对象进行内省或反思，例如自我介绍、自我评价、自我提升等。这类任务指令可以用来测试GPT模型的文本内省和生成能力，也可以用来提供有价值的意见和建议。例如，一个可能的任务指令是：“根据以下文章对自己进行一次自我评价，并给出优点和缺点。”
-
-
-参数含义示例核对： 检查用户输入是否符合预期，并给出相应提示。例如，在Prompt中加入
-内省： 
-	让GPT自我反思其输出或行为，并给出评价或建议。这可以帮助我们发现GPT的错误或潜能，并改进其性能。
-（3） 计算
-
-变量(variable)	定义一个可以存储和修改值的符号，以便在输入或输出中重复使用。
-	例如，在Prompt中加入[variable: name = "Alice"]表示定义一个变量名为name，值为"Alice"，并在后续输入或输出中使用该变量。
-
-
-
-如果你需要把生成一份文档的模板描述给我，你可以用#template指令，然后用code blocks语法来写出文档的结构和内容。例如：
-
-#template
-
-标题：{title}
-作者：{author}
-日期：{date}
-
-摘要：
-{summary}
-
-正文：
-{body}
-
-结论：
-{conclusion}
-
-参考文献：
-{references}
-
-
-如果你需要在输入中定义一个变量，在输入内容后面的部分引用，你可以用#define指令，然后用{}符号来标记变量的名称和值。例如：
-
-#define {name} = 小明 {age} = 18
-
-我想介绍一下我的朋友{name}，他今年{age}岁，是一名高中生。
-
-
-（4） 推理
-
-• 推理：这类任务指令是指让GPT模型根据给定的文本内容或对象进行推理或推导，例如推论、演绎、归纳等。这类任务指令可以用来测试GPT模型的文本推理和生成能力，也可以用来提供有用的信息和解决方案。例如，一个可能的任务指令是：“根据以下文章推理出作者的观点和论据，并给出自己的看法。”
-
-
-逐步 Step by Step
-
-
-如果你需要把完成一个事情的步骤描述给我，你可以用#steps指令，然后用-符号列出每个步骤。例如：
-
-#steps
-
-打开浏览器
-输入网址
-点击搜索按钮
-（5） 测验
-
-2.4 典型示例
-
-
-请根据https://juejin.cn/post/6918742977389002766 这个网页中内容，出一套C++面向对象设计课程的试卷，试卷包含10道填空题、10道选择题、5道判断题、2道编程题。填空题每道题2分，选择题每道题2分，判断题每道2分，编程题每道25分，试卷总分100分。
-
-试卷格式如下：
-N、题型名称（每道题x分，总分y分）
-n.题干
-
-其中，N为每类题型的序号，用汉字表示；n为每类题型题目的序号。
-
-若题型为选择题，则输出题干后换行，另起一行输出各个选项；
-若题型为判断题，则在提干后面添加一对中文括号，右对齐。
-
-
-根据以下网页内容，生成一套C++面向对象设计课程的试卷： https://juejin.cn/post/6918742977389002766
-试卷要求：
-• 试卷包含四种题型：填空题、选择题、判断题、编程题
-• 每种题型有固定的数量和分值：填空题10道，每道2分；选择题10道，每道2分；判断题5道，每道2分；编程题2道，每道25分
-• 试卷总分为100分
-• 试卷格式如下：
-o N、题型名称（每道题x分，总分y分）
-o n.题干
-o 其中，N为每类题型的序号，用汉字表示；n为每类题型题目的序号。
-o 若题型为选择题，则输出题干后换行，另起一行输出各个选项；
-o 若题型为判断题，则在提干后面添加一对中文括号，右对齐。
-
-
-
-
-
-任务指令集的示例如下：
-信息来源:https://juejin.cn/post/6918742977389002766
-生成内容:试卷
-格式要求:
-- 题型:填空题/2分/题/10题/20分,选择题/2分/题/10题/20分,判断题/2分/题/5题/10分,编程题/25分/题/2题/50分
-- 格式:每种题型用大写汉字序号（一、二、三、四）+题型名称+总分数；每道题目用小写阿拉伯数字序号（1、2、3、...）+题干；选择题用字母选项（A、B、C、D）+选项内容；判断题用中文括号（ ）；编程题用代码块语法（```）
-输出格式:markdown
-生成工具:GPT
-
-
-
-三、 结论和未来工作
-3.1 结论
-1. 总结本文的主要贡献和发现，回答引言中提出的研究问题和假设
-Prompt规范化表达方法的优势主要有以下几点：
-• Prompt可以充分利用预训练模型中已经学习到的知识和能力，无需对每个任务进行微调，节省了计算资源和存储空间，也提高了模型的泛化能力和适应性。
-• Prompt可以实现零样本或少样本的学习，即在没有或很少标注数据的情况下，通过给模型一些提示，让它根据任务直接学习，这对于一些数据稀缺或难以获取的任务非常有用。
-• Prompt可以实现多任务或跨领域的学习，即通过不同的Prompt，让同一个模型适应不同的任务或领域，这可以提高模型的灵活性和通用性。
-
-尽管GPT、Prompt工程、脚本理论和其他相关主题已经有了大量的研究，但是目前还没有一种统一的方法来表示和生成适用于GPT的提示。现有的提示工程技术往往是针对特定的任务或领域来设计的，缺乏通用性和可复用性。同时，现有的提示工程技术也没有充分利用脚本理论来指导和约束GPT的生成过程，从而提高其输出的连贯性和合理性。
-本文的创新点是提出了一种适用于GPT的Prompt脚本化规范化表达方法，可以通过脚本来指定输出的格式、内容、逻辑和目标，从而提高GPT的可控性和可靠性。本文的贡献和目标如下：
-• 提出了一个Prompt脚本化规范化表达方法的框架，包括脚本的定义、结构、语法和语义。
-• 设计了一个Prompt脚本化规范化表达方法的编译器，可以将脚本转换为GPT能够理解和执行的输入指令。
-• 实现了一个Prompt脚本化规范化表达方法的应用系统，可以根据用户提供的脚本或者自动生成的脚本来与GPT进行交互，并展示GPT的输出结果。
-• 评估了Prompt脚本化规范化表达方法在不同任务或领域上的效果，与现有的提示工程技术进行了比较和分析。
-
-• GPT的优点是能够利用大量的无标注文本数据来进行预训练，从而提高其在多种自然语言处理任务上的表现。GPT的缺点是缺乏常识知识、难以控制输出风格和内容、容易产生不一致或不合理的回答等。本文的创新点是提出了一种适用于GPT的Prompt脚本化规范化表达方法，可以通过脚本来指定输出的格式、内容、逻辑和目标，从而提高GPT的可控性和可靠性。
-• Prompt工程的优点是能够利用输入指令来定制和优化语言模型输出，从而提高语言模型在特定任务或领域上的表现。Prompt工程的缺点是需要花费大量的时间和精力来设计和测试有效的提示，以及难以保证提示的可解释性和可信度。本文的贡献是提供了一个Prompt脚本化规范化表达方法的框架，可以帮助提示工程师快速构建和修改提示，以及给出提示的来源、置信度、原因等信息。
-
-
-2. 讨论本文对理论和实践的影响和局限性 
-
-
-Prompt规范化表达方法的局限性主要有以下几点123：
-• Prompt的设计需要一定的专业知识和经验，不同的任务和模型可能需要不同的Prompt，而找到最合适的Prompt并不容易，需要大量的尝试和调整。
-• Prompt的效果受到预训练模型参数规模的影响，只有当模型足够大时，才能达到和微调相当甚至更好的效果，而当模型较小时，Prompt的效果会明显下降。
-• Prompt的初始化方式也会影响模型的性能，一般来说，使用任务相关的Prompt或者随机初始化的Prompt会比使用固定的Prompt更好，但是这也增加了计算成本和复杂度。
-• Prompt可能存在一定的泛化问题，即在某些任务或数据集上表现很好的Prompt，在其他任务或数据集上表现很差，这需要对不同的场景进行适应和优化。
-
-3.2 未来工作
-
-1. 根据本文提出一些可能的方向或拓展，如改进或修改方法，将其应用到其他领域或任务等 
-2. 讨论未来工作的潜在好处或挑战
-　　
-　　
-　　
-　　论文提出了一种用于GPT的Prompt标准化和规范化方法，可以有效地提升生成质量和多样性。论文的主要贡献有以下几点：
-• 提出了一种基于语义标签和自然语言描述的Hard Prompt生成方法，可以根据不同的任务和场景自动生成合适的Hard Prompt。
-• 设计了一个Prompt标准化和规范化框架，以提高其可读性、可解释性和可重用性。使用自然语言描述来补充任务的语义细节。这种方法可以生成更灵活、更丰富、更符合任务要求的Prompt，从而提升GPT的生成效果。
-相对于其他Prompt标准化和规划化表示方法，这种方法的优点有：
-• 它可以利用混合语义标签的抽象性和自然语言描述的具体性，结合两者的优势，生成更合适的Prompt。
-• 它可以根据不同的任务和领域，灵活地调整混合语义标签和自然语言描述的比例和内容，生成更多样化的Prompt。
-• 它可以通过自然语言描述来引入一些背景知识和常识，增强Prompt的语义表达能力和逻辑推理能力。
-这种方法的不足之处有：
-• 它需要人工设计和标注混合语义标签和自然语言描述，这可能会增加人力成本和时间成本，也可能会引入一些主观偏差和噪声。
-• 它没有考虑到Prompt的长度和位置对生成效果的影响，这可能会导致一些不必要的冗余或缺失。
-• 它没有对比和分析其他类型的Prompt方法，比如Soft Prompt或Hybrid Prompt，这可能会限制它的泛化能力和创新性。
-
-四、 参考文献
-
-
-Promptstacks - GPT Prompt Engineering Community：这是一个专门为GPT设计和分享Prompt的在线社区，用户可以浏览和搜索各种类型和主题的Prompt，也可以贡献自己的创意。
-A Hands-on Guide to Prompt Engineering with GPT and GPT-3：这是一篇介绍如何使用GPT和GPT-3进行Prompt engineering的教程文章，包含了许多实用的示例和代码。
-A Prompt Pattern Catalog to Enhance Prompt Engineering with GPT：这是一篇关于使用GPT进行Prompt engineering的学术论文，提出了一个基于模式的目录来系统化地构建优化的Prompt。
-
-FREE RESOURCE 🤩 GPT Prompt Engineering Primer 👨‍💻 Chapters 1–3 (substack.com)
-
-
-[1] Finetuned Language Models Are Zero-Shot Learners
-https://arxiv.org/abs/2109.01652
-[2] Multi-Task Deep Neural Networks for Natural Language Understanding
-https://aclanthology.org/P19-1441/
-[3] Muppet: Massive Multi-task Representations with Pre-Finetuning
-https://arxiv.org/abs/2101.11038
-
-[志杨1]
-2
-
-
