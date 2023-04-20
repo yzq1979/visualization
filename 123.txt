@@ -1,0 +1,673 @@
+basic.h
+
+
+#ifndef _BASIC_H_
+#define _BASIC_H_
+
+
+
+
+//和程序实现相关的一些基础的常量、函数声明
+
+enum State{EMPTY,GRASS, RABBIT, FOX, STATES};
+
+const int DRAB=3;     //兔子的寿命
+const int DFOX=4;     //狐狸的寿命
+const int TMFOX=2;    //太多的狐狸数
+const int CYCLES=5;   //仿真总步数
+const int N=40;       //世界的大小
+
+struct Position    //位置
+{
+	int row;     //行
+	int colum;   //列
+};
+
+
+
+#include <iostream>
+using namespace std;
+
+
+
+//用于在控制台窗口显示彩色的字体
+#include <windows.h>
+struct color 
+{
+    color(WORD attribute):m_color(attribute){};
+    WORD m_color;//颜色值
+};
+
+//使用模板函数
+template <class _Elem, class _Traits>
+std::basic_ostream<_Elem,_Traits>& 
+operator<<(std::basic_ostream<_Elem,_Traits>& i, color& c)
+{
+    HANDLE hStdout=GetStdHandle(STD_OUTPUT_HANDLE);  //获取标准输出句柄
+    SetConsoleTextAttribute(hStdout,c.m_color);   //设置文本颜色
+    return i;
+}
+
+
+
+#endif
+
+
+empty.cpp
+
+
+#include "empty.h"
+
+
+
+State EmptyUnit::getState()
+{
+	return EMPTY;
+}
+
+
+State EmptyUnit::nextState() 
+{
+	round();
+
+	if (sum[FOX]>1)
+	{
+		return FOX;
+	} 
+	else
+	{
+		if (sum[RABBIT]>1)
+		{
+			return RABBIT;
+		} 
+		else
+		{
+			if (sum[GRASS]>1)
+			{
+				return GRASS;
+			} 
+			else
+			{
+				return EMPTY;
+			}
+		}
+	}
+}
+
+
+
+void EmptyUnit::round()
+{
+	world->sums(pos,sum);
+	
+}
+
+
+
+
+empty.h
+
+#include "living.h"
+
+
+
+class EmptyUnit:public LivingUnit
+{
+public:
+	EmptyUnit(World *  const w,int r,int c)
+	{	pos.row=r;
+		pos.colum=c;
+		world=w;
+	}
+	
+	State getState();	
+	State nextState();
+	void round(); 
+};
+
+
+
+fox.cpp
+
+#include "fox.h"
+#include "empty.h"
+
+State FoxUnit::getState()
+{
+	return FOX;
+}
+
+State FoxUnit::nextState()
+{
+	round();
+	if (sum[FOX]>TMFOX)
+	{
+		return EMPTY;
+	}
+	else
+	{
+		if (age>DFOX)
+		{
+			return EMPTY;
+		} 
+		else
+		{
+			return FOX;
+		}
+	}
+}
+
+
+void FoxUnit::round()
+{
+	world->sums(pos,sum);
+}
+
+
+fox.h
+
+#include "living.h"
+
+
+class FoxUnit:public LivingUnit
+{
+public:
+	FoxUnit(World* w,int r,int c,int a=0):age(a)
+	{
+		pos.row=r;
+		pos.colum=c;
+		world=w;
+	}
+	State getState();	
+	State nextState();
+	void round(); 
+protected:
+	int age;
+};
+
+
+grass.cpp
+
+#include "grass.h"
+#include "empty.h"
+
+
+State GrassUnit::getState()
+{
+	return GRASS;
+}
+
+
+State GrassUnit::nextState() 
+{
+	round();
+	if (sum[GRASS]>sum[RABBIT])
+	{
+		return GRASS;
+	}
+	else
+	{
+		return EMPTY;
+	}
+}
+
+
+
+void GrassUnit::round()
+{
+	world->sums(pos,sum);	
+}
+
+
+
+grass.h
+
+
+#include "living.h"
+
+
+class GrassUnit:public LivingUnit
+{
+public:
+	GrassUnit(World* w,int r,int c)
+	{
+		pos.row=r;
+		pos.colum=c;
+		world=w;
+	}
+
+	State getState();	
+	State nextState();
+	void round(); 
+
+};
+
+
+
+
+
+living.cpp
+
+
+living.h
+
+#ifndef  _LIVING_H_
+#define  _LIVING_H_
+
+
+#include "basic.h"
+
+#include "world.h"
+
+
+class LivingUnit    //单元格对象，分为 空的，草，兔、狐狸 等
+{
+public:
+	virtual State getState()=0;   //获取生物所在位置的当前仿真时刻状态
+	virtual State nextState()=0;  //该单元下一个仿真时刻的状态
+	virtual void round()=0;     //周围态势，得到各类生物数目统计	
+
+protected:
+	Position pos;       //所在的位置
+	World *world;       //所在的世界
+	int sum[STATES];    //所在位置附近的各类生物数目统计
+	
+};
+
+
+#endif
+
+
+
+main.cpp
+
+
+
+
+//一个简单的生态仿真系统
+
+#include <iostream>
+using namespace std;
+
+#include "scene.h"
+
+int main()
+{
+	World world(WORLD_OF_FOX);
+	Scene scene(world);	
+
+	scene.run();
+	
+	return 1;
+}
+
+
+
+rabbit.cpp
+
+
+#include "rabbit.h"
+#include "empty.h"
+
+State RabbitUnit::getState()
+{
+	return RABBIT;
+}
+
+State RabbitUnit::nextState()
+{
+	round();
+	if (sum[FOX]>sum[RABBIT])
+	{
+		return EMPTY;
+	} 
+	else if (age>DRAB)
+	{
+		return EMPTY;
+	} 
+	else
+	{
+		return RABBIT;
+	}
+}
+
+
+
+void RabbitUnit::round()
+{
+	world->sums(pos,sum);
+}
+
+
+
+rabbit.h
+
+#include "living.h"
+
+
+class RabbitUnit:public LivingUnit
+{
+public:
+	RabbitUnit(World* w,int r,int c,int a=0):age(a)
+	{
+		pos.row=r;
+		pos.colum=c;
+		world=w;
+	}
+	
+	State getState();	
+	State nextState();
+	void round(); 
+protected:
+	int age;
+	
+};
+
+
+
+
+scene.cpp
+
+
+
+#include <iostream>
+using namespace std;
+
+
+#include "scene.h"
+#include "living.h"
+
+
+Scene::Scene(World &w)
+{
+	world=&w;
+}
+
+
+
+void Scene::update()
+{
+	world->update();
+}
+
+
+
+void Scene::display()
+{
+	world->display();
+}
+
+
+void Scene::run()
+{
+	for (int i=0;i<CYCLES;++i)
+	{
+		update();
+		display();
+	}
+}
+
+
+
+scene.h
+
+#include "basic.h"
+
+#include "world.h"
+
+
+class Scene
+{
+public:
+	Scene(World &w);
+	void update();     //更新场景
+	void display();	   //显示当前的场景
+	void run();        //场景运行
+
+private:
+	World *world;	
+};
+
+
+
+word.cpp
+
+
+#include <iostream>
+using namespace std;
+
+#include "basic.h"
+
+#include "empty.h"
+#include "grass.h"
+#include "rabbit.h"
+#include "fox.h"
+
+#include "world.h"
+
+
+ World::World(int index)
+{		
+	curMap=new Map[N];
+
+	initWorld();  //初始化世界，默认为全空
+
+	switch(index)
+	{
+		case WORLD_OF_GRASS:
+			worldOfGrass();
+			break;
+			
+		case WORLD_OF_RABBIT:
+			worldOfRabbit();
+			break;
+		case WORLD_OF_FOX:
+			worldOfFox();
+			break;
+	}
+}
+
+
+void World::initWorld()
+{
+	for (int i=0;i<N;i++)
+		for (int j=0;j<N;j++)
+		{			
+			(*curMap)[i][j]=EMPTY;			
+		}
+}
+
+
+
+
+
+void World::worldOfGrass()
+{
+	//待补充
+}
+
+
+
+void World::worldOfRabbit()
+{
+	//待补充	
+}
+
+
+
+void World::worldOfFox()
+{
+	for (int i=2;i<N-2;++i)
+		for (int j=2;j<N-2;++j)
+		{			
+			if ((i+j)%3==0)
+			{
+				(*curMap)[i][j]=RABBIT;
+			} 
+			else
+			{
+				if ((i+j)%3==1)
+				{
+					(*curMap)[i][j]=FOX;
+				} 
+				else
+				{
+					(*curMap)[i][j]=GRASS;
+				}
+			}
+		}		
+}
+
+
+
+void World::update()
+{
+	for (int i=1;i<N-1;i++)
+		for (int j=1;j<N-1;j++)
+		{
+			LivingUnit* p=locate(i,j);
+
+			int m=(*curMap)[i][j];
+			int n=p->nextState();
+
+			(*curMap)[i][j]=p->nextState();
+		}
+}
+
+
+
+void World::display()
+{
+	for (int i=0;i<N;++i)
+	{
+		cout<<endl;
+		for (int j=0;j<N;++j)
+		{
+			switch((*curMap)[i][j])
+			{
+			case 0:
+				cout<<color(FOREGROUND_BLUE|FOREGROUND_GREEN|FOREGROUND_RED)<<(*curMap)[i][j];
+				break;
+			case 1:
+				cout<<color(FOREGROUND_GREEN)<<(*curMap)[i][j];
+				break;
+			case 2:
+				cout<<color(FOREGROUND_RED|FOREGROUND_GREEN)<<(*curMap)[i][j];
+				break;
+			case 3:
+				cout<<color(FOREGROUND_RED)<<(*curMap)[i][j];
+				break;
+			}
+			
+		}
+	}	
+	cout<<endl<<endl;
+}
+
+
+
+
+LivingUnit* World::locate(int row,int colum)
+{
+	switch((*curMap)[row][colum])
+	{
+	case EMPTY:
+		return(new EmptyUnit(this,row,colum));
+		break;
+	case GRASS:
+		return(new GrassUnit(this,row,colum));
+		break;
+	case RABBIT:
+		return(new RabbitUnit(this,row,colum));
+		break;
+	case FOX:
+		return(new FoxUnit(this,row,colum));
+		break;
+	}
+}
+
+
+
+
+void World::sums(Position pos,int sum[STATES]) //世界某个位置周围的各类生物的总数的列表
+{
+	int i,j;
+	
+	sum[EMPTY]=sum[GRASS]=0;
+	sum[RABBIT]=sum[FOX]=0;
+
+	State state;
+	
+	for (i=-1;i<1;i++)
+		for (j=-1;j<1;j++)
+		{
+			state=(*curMap)[pos.row+i][pos.colum+j];
+ 			sum[state]++;
+		}		
+}
+
+
+
+
+word.h
+
+
+
+#ifndef _WORLD_H_
+#define _WORLD_H_
+
+#include "basic.h"
+//与程序内部实现相关的一些变量定义
+
+typedef State Map[N][N];
+
+
+class LivingUnit;
+class EmptyUnit;
+class GrassUnit;
+class RabbitUnit;
+class FoxUnit;
+
+enum SimWorld {WORLD_OF_GRASS,WORLD_OF_RABBIT, WORLD_OF_FOX}; //仿真的世界
+
+class World
+{
+public:
+	World(int index);
+	void update();      //更新世界
+	void display();     //显示世界
+	void sums(Position pos,int sum[STATES]); //指定位置周围的各类生物的总数的列表，返回结果保存在数组int sum[STATES]中
+	
+private:
+	void initWorld();   //初始化世界，默认全空
+	void worldOfGrass();   //配置青草的世界
+	void worldOfRabbit();  //配置兔子的世界
+	void worldOfFox();     //配置狐狸的世界
+
+    LivingUnit* locate(int row,int colum);  //根据指定位置返回指向存在于该位置的对象的指针	
+
+	Map * curMap;   //当前的世界地图
+};
+
+
+#endif
+
+
+
+
+wordDefine.h
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
